@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="BEVerage: which bird's-eye-view map should a single-camera indoor robot predict? Seven candidate representations, an oracle noise study and closed-loop evaluation in Habitat.">
+  <meta name="keywords" content="BEV, bird's-eye view, monocular, indoor navigation, local planning, Habitat, HM3D">
+  <title>BEVerage</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Castoro&family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.4/css/academicons.min.css">
+  <link rel="stylesheet" href="static/css/index.css">
+  <link rel="icon" href="static/images/favicon.svg">
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop has-text-centered">
+      <h1 class="title is-1 publication-title"><span class="brand">BEVerage</span>: Learning Navigable Bird's-Eye-View Representations from a Single Camera for Indoor Local Planning</h1>
+      <div class="is-size-5 publication-authors">
+        <span class="author-block">Anay Rungta,</span>
+        <span class="author-block">Advaith Sudarshan,</span>
+        <span class="author-block">Siddharth Sinha</span>
+      </div>
+      <div class="is-size-5 publication-authors">
+        <span class="author-block">IIIT Hyderabad &middot; Mobile Robotics, Monsoon 2026 &middot; Mid submission</span>
+      </div>
+
+      <div class="publication-links">
+        <a href="static/pdf/BEVerage_Mid_Submission.pdf" class="button is-dark is-rounded">
+          <span class="icon"><i class="fas fa-file-pdf"></i></span><span>Mid report</span>
+        </a>
+        <a href="#results" class="button is-dark is-rounded">
+          <span class="icon"><i class="fas fa-chart-line"></i></span><span>Results</span>
+        </a>
+        <a href="#videos" class="button is-dark is-rounded">
+          <span class="icon"><i class="fas fa-film"></i></span><span>Videos</span>
+        </a>
+        <span class="button is-dark is-rounded" disabled title="The code repository is private for now">
+          <span class="icon"><i class="fab fa-github"></i></span><span>Code (coming soon)</span>
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Teaser -->
+<section class="hero teaser">
+  <div class="container is-max-desktop">
+    <div class="hero-body">
+      <div class="teaser-switch buttons has-addons is-centered">
+        <button class="button is-selected ok" data-src="teaser_gt_r1"><span class="icon"><i class="fas fa-check"></i></span><span>Amodal ground-truth map</span></button>
+        <button class="button fail" data-src="teaser_pseudo_r1"><span class="icon"><i class="fas fa-xmark"></i></span><span>This frame's depth only</span></button>
+        <button class="button ok" data-src="teaser_pseudo_acc_r1"><span class="icon"><i class="fas fa-check"></i></span><span>Depth fused over time</span></button>
+      </div>
+      <video id="teaser-video" poster="static/videos/teaser_gt_r1.jpg" autoplay muted loop playsinline>
+        <source src="static/videos/teaser_gt_r1.mp4" type="video/mp4"></video>
+      <p id="teaser-note" class="tag-line ok">Reaches the goal in 65 steps.</p>
+      <h2 class="subtitle has-text-centered teaser-caption">
+        Same episode (HM3D minival 00802), same R1 planner, three maps. A map built only from what the
+        camera sees right now leaves the robot turning in place until it runs out of steps: what it cannot
+        see matters more than which representation it uses.
+      </h2>
+      <p class="video-legend">Each video: camera view &middot; the 4&nbsp;m egocentric map the planner sees (yellow: local plan, magenta: subgoal) &middot; the floor map with the driven path. Sped up.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Abstract -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+            A ground robot with one forward camera has to decide where it can drive in the next few metres,
+            including the space it cannot see: behind furniture, and the 1.17&nbsp;m of floor right in front of it
+            that never appears in the image. Most monocular BEV work picks a map format first and then asks how
+            well a network can predict it. We treat the <b>representation itself as the design variable</b>.
+          </p>
+          <p>
+            We generate aligned, amodal ground truth for seven candidate egocentric maps (occupancy, height-sliced
+            occupancy, semantics, cost-to-go, clearance, reachability and a direction field) from privileged
+            Habitat data, pair each with a fixed planner, and stress-test them in a whole-floor oracle and in a
+            per-step closed loop on HM3D. On clean labels every representation is within a few points of the
+            navmesh ceiling. Under controlled noise the planner matters as much as the map: binary occupancy
+            collapses at 2% flipped cells, the clearance field stays robust to grown obstacles, and smooth fields
+            survive their own noise only when a search-based planner consumes them. Single-frame visible labels
+            lose 23&ndash;40 points for <i>every</i> representation, while fusing over time recovers most of the gap,
+            the strongest evidence so far that the Stage&nbsp;3 predictor must be amodal.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Setup -->
+<section class="section alt">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3">Problem setup</h2>
+    <div class="columns">
+      <div class="column">
+        <div class="content">
+          <ul>
+            <li><b>Robot:</b> cylinder, radius 0.2&nbsp;m, height 1.0&nbsp;m; actions forward 0.25&nbsp;m and turn 10&deg;.</li>
+            <li><b>Sensor at test time:</b> one RGB camera, 0.88&nbsp;m high, 90&deg; HFOV, no pitch, plus a point goal from odometry.</li>
+            <li><b>Local map:</b> 80&times;80 egocentric grid at 5&nbsp;cm, 4&nbsp;m ahead and &plusmn;2&nbsp;m sideways, robot at the bottom centre.</li>
+            <li><b>Success:</b> within 0.2&nbsp;m of the goal in at most 500 steps. Simulation only (Habitat, HM3D), static single-floor episodes.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="column">
+        <div class="content">
+          <p><b>We want three things:</b></p>
+          <ol>
+            <li>the representation whose planner degrades slowest when its map is wrong in the way a network would get it wrong;</li>
+            <li>a predictor that outputs it from a single image, including occluded cells and the blind zone;</li>
+            <li>an evaluation that measures map error and closed-loop navigation together, so the <b>oracle gap</b> (the cost of perception) is separated from the cost of the representation or planner.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Representations -->
+<section class="section" id="representations">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3">Seven candidate representations</h2>
+    <div class="content has-text-justified">
+      <p>
+        One pipeline turns depth, pose, semantics and a robot-sized navmesh into per-frame labels. Depth is
+        back-projected and binned into height bands (<i>floor</i> [&minus;0.15, 0.10)&nbsp;m, <i>body</i> [0.10, 1.0)&nbsp;m,
+        <i>overhead</i> [1.0, 2.0)&nbsp;m). <b>Visible</b> labels use the current frame only. <b>Amodal</b> labels crop a
+        per-floor map fused from 2,000&ndash;3,000 views, so they also cover occluded space and fill 83&ndash;90% of the blind zone.
+      </p>
+    </div>
+    <figure class="figure">
+      <img src="static/images/fig_representations.png" alt="All seven representations for one frame of HM3D scene 00808, visible (top) and amodal (bottom)">
+      <figcaption>
+        One frame of HM3D 00808. Top: from the current depth image only (visible). Bottom: from the fused floor map (amodal).
+        Regions: blue seen, yellow occluded, red blind zone, grey out of view. The star is the route subgoal inside the crop.
+      </figcaption>
+    </figure>
+
+    <div class="table-container">
+      <table class="table is-fullwidth is-hoverable rep-table">
+        <thead><tr><th></th><th>Representation</th><th>What a cell holds</th><th>Planner</th><th>Main weakness as a learning target</th></tr></thead>
+        <tbody>
+          <tr><td>R1</td><td>Occupancy</td><td>free / occupied / unknown</td><td>A* on inflated costmap</td><td>binary: one wrong cell closes a doorway; ~70% of the supervision is space the camera never sees</td></tr>
+          <tr><td>R2</td><td>Height-sliced occupancy</td><td>floor / body / overhead presence</td><td>A* (body band)</td><td>same planner input as R1 on clean labels; bands are tied to one robot body</td></tr>
+          <tr><td>R3</td><td>Semantic BEV</td><td>majority object class</td><td>object goals</td><td>large surfaces win the vote; long-tailed classes; amodal semantics is mostly a guess</td></tr>
+          <tr><td>R4</td><td>Goal cost-to-go</td><td>geodesic distance to goal, relative to the robot</td><td>greedy descent / A*</td><td>entangles map, goal and planning; which doorway leads to the goal is usually outside the image</td></tr>
+          <tr><td>R5</td><td>Clearance field</td><td>signed distance to the nearest obstacle</td><td>A* with inflation cost</td><td>easiest to learn (bounded, smooth, local) but goal-free and overestimates clearance at the crop edge</td></tr>
+          <tr><td>R6</td><td>Reachability</td><td>walking distance from the robot</td><td>A* + heading cue / R4</td><td>unbounded, non-local targets (20&nbsp;m+ behind walls) dominate an L1 loss</td></tr>
+          <tr><td>R7</td><td>Direction field</td><td>16-bin heading towards the goal</td><td>arrow-following / A*</td><td>8-connected paths snap arrows to 45&deg; (mean 17&deg; error); bimodal at obstacles</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Videos -->
+<section class="section alt" id="videos">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3">Closed-loop driving</h2>
+    <div class="content has-text-justified">
+      <p>
+        In the closed loop the robot sees only the 4&nbsp;m egocentric map at every step and replans towards a
+        subgoal, the global route projected onto the grid's boundary. The same episode in scene 00800, driven on
+        four amodal ground-truth representations:
+      </p>
+    </div>
+    <div class="columns is-multiline video-grid">
+      <div class="column is-half"><video poster="static/videos/rep_00800_gt_r1.jpg" autoplay muted loop playsinline><source src="static/videos/rep_00800_gt_r1.mp4" type="video/mp4"></video><p class="video-label">R1 occupancy</p></div>
+      <div class="column is-half"><video poster="static/videos/rep_00800_gt_r5_astar.jpg" autoplay muted loop playsinline><source src="static/videos/rep_00800_gt_r5_astar.mp4" type="video/mp4"></video><p class="video-label">R5 clearance (keeps to the middle of the corridor)</p></div>
+      <div class="column is-half"><video poster="static/videos/rep_00800_gt_r6_subgoal.jpg" autoplay muted loop playsinline><source src="static/videos/rep_00800_gt_r6_subgoal.mp4" type="video/mp4"></video><p class="video-label">R6 reachability</p></div>
+      <div class="column is-half"><video poster="static/videos/rep_00800_gt_r7_astar.jpg" autoplay muted loop playsinline><source src="static/videos/rep_00800_gt_r7_astar.mp4" type="video/mp4"></video><p class="video-label">R7 direction field</p></div>
+    </div>
+
+    <h3 class="title is-4">Why keep the body band</h3>
+    <div class="content has-text-justified">
+      <p>
+        Planning on visible floor alone ("floor only") treats any cell with floor under it as free, including floor
+        under tables, shelves and stairs. Here its plan runs through blocked space and the robot slides along
+        obstacles until the 500-step budget runs out, while R1 on the same start and goal reaches it in 123 steps.
+        Floor-only reaches only 0.69 oracle success even on clean labels.
+      </p>
+    </div>
+    <div class="columns video-grid">
+      <div class="column"><video poster="static/videos/floor_only_00337.jpg" autoplay muted loop playsinline><source src="static/videos/floor_only_00337.mp4" type="video/mp4"></video><p class="video-label fail">Floor only: stuck, 290 collisions</p></div>
+      <div class="column"><video poster="static/videos/r1_00337.jpg" autoplay muted loop playsinline><source src="static/videos/r1_00337.mp4" type="video/mp4"></video><p class="video-label ok">R1 (body band): reaches the goal</p></div>
+    </div>
+
+    <h3 class="title is-4">Reference sensors</h3>
+    <div class="content has-text-justified">
+      <p>Simulated LiDAR baselines on the 00800 episode. The planar scan misses overhangs such as table tops; the 3D scan (16 rings) sees them.</p>
+    </div>
+    <div class="columns video-grid">
+      <div class="column"><video poster="static/videos/rep_00800_lidar_r1.jpg" autoplay muted loop playsinline><source src="static/videos/rep_00800_lidar_r1.mp4" type="video/mp4"></video><p class="video-label">2D LiDAR costmap</p></div>
+      <div class="column"><video poster="static/videos/rep_00800_lidar3d_r1.jpg" autoplay muted loop playsinline><source src="static/videos/rep_00800_lidar3d_r1.mp4" type="video/mp4"></video><p class="video-label">3D LiDAR costmap</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- Results -->
+<section class="section" id="results">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3">Results</h2>
+    <p class="content">All numbers are on the 10 HM3D minival scenes (00800&ndash;00809). Whole-floor oracle: 500 episodes per planner; noise sweep: 80 per point; closed loop: 200 per method, all methods on the same episodes (exact McNemar tests, 95% Wilson intervals).</p>
+
+    <div class="findings columns is-multiline">
+      <div class="column is-half"><div class="finding"><span class="num">&ge;&nbsp;0.97</span><p><b>Clean labels are not the bottleneck.</b> Every representation reaches at least 0.97 whole-floor oracle success; the navmesh ceiling is 1.00.</p></div></div>
+      <div class="column is-half"><div class="finding"><span class="num">0.96&nbsp;&rarr;&nbsp;0.00</span><p><b>Binary occupancy is brittle.</b> Flipping 2% of R1 cells at random closes every passage.</p></div></div>
+      <div class="column is-half"><div class="finding"><span class="num">0.93</span><p><b>R5 tolerates geometric error.</b> With obstacles grown by 15&nbsp;cm it keeps 0.93 while every other planner falls to 0.39&ndash;0.54: a narrowed doorway becomes expensive, not closed.</p></div></div>
+      <div class="column is-half"><div class="finding"><span class="num">&minus;23&nbsp;to&nbsp;&minus;40</span><p><b>Visible-only labels hurt every representation.</b> Fusing over time recovers most of it (0.92&ndash;0.94).</p></div></div>
+    </div>
+
+    <h3 class="title is-4">Oracle noise study</h3>
+    <figure class="figure">
+      <img src="static/images/fig_noise.png" alt="Oracle success under four kinds of controlled noise">
+      <figcaption>
+        Oracle success under controlled noise (80 episodes per point). (a) Obstacles shrunk or grown in the source map, then every
+        representation rebuilt. (b) Gaussian noise on the scalar fields. (c) Angular jitter on R7. (d) Random flips of R1 cells or R7
+        directions. Solid: planners that search over the map (A*); dashed: planners that trust each cell. Greedy descent on R4 drops to 0
+        at &sigma;&nbsp;=&nbsp;0.1&nbsp;m and arrow-following on R7 to 0.12 at 10% flips, while A* on the same fields keeps 1.00.
+      </figcaption>
+    </figure>
+
+    <h3 class="title is-4">Navigation on privileged labels</h3>
+    <div class="table-container">
+      <table class="table is-fullwidth is-hoverable is-narrow results-table">
+        <thead>
+          <tr><th rowspan="2">Planner</th><th colspan="3">Whole-floor oracle (amodal)</th><th colspan="3">Closed loop, 4&nbsp;m crop (amodal)</th><th>Visible</th><th>Visible + fusion</th></tr>
+          <tr><th>Succ.</th><th>SPL</th><th>Coll.</th><th>Succ.</th><th>SPL</th><th>Coll.</th><th>Succ.</th><th>Succ.</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>navmesh</td><td>1.000</td><td>1.00</td><td>.57</td><td>&ndash;</td><td>&ndash;</td><td>&ndash;</td><td>&ndash;</td><td>&ndash;</td></tr>
+          <tr><td>R1</td><td>.974</td><td>.96</td><td>.49</td><td>.955</td><td>.94</td><td>.32</td><td>.720</td><td>.925</td></tr>
+          <tr><td>R2</td><td>.974</td><td>.96</td><td>.49</td><td>.955</td><td>.94</td><td>.32</td><td>.715</td><td>&ndash;</td></tr>
+          <tr><td>R4 greedy</td><td>1.000</td><td>.98</td><td>.60</td><td>.995</td><td>.99</td><td>.37</td><td>.730</td><td>.940</td></tr>
+          <tr><td>R4 A*</td><td>1.000</td><td>.99</td><td>.62</td><td>.880</td><td>.87</td><td>.34</td><td>.620</td><td>.940</td></tr>
+          <tr><td>R5 A*</td><td>.976</td><td>.89</td><td class="best">.01</td><td>.960</td><td>.95</td><td>.35</td><td>.000*</td><td>.000*</td></tr>
+          <tr><td>R5 + R4</td><td>&ndash;</td><td>&ndash;</td><td>&ndash;</td><td>.950</td><td>.93</td><td>.37</td><td>.000*</td><td>.000*</td></tr>
+          <tr><td>R6</td><td>1.000</td><td>.97</td><td>.57</td><td>.995</td><td>.98</td><td>.44</td><td>.600</td><td>.920</td></tr>
+          <tr><td>R6 + R4</td><td>1.000</td><td>.98</td><td>.56</td><td>.865</td><td>.85</td><td>.39</td><td>.605</td><td>.920</td></tr>
+          <tr><td>R7 A*</td><td>1.000</td><td>.98</td><td>.41</td><td>.995</td><td>.99</td><td>.41</td><td>.695</td><td>.940</td></tr>
+          <tr><td>R7 follow</td><td>&ndash;</td><td>&ndash;</td><td>&ndash;</td><td class="best">1.000</td><td>.99</td><td>.39</td><td>.725</td><td>.935</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-note">Coll.: share of episodes with at least one collision. Fusion: log-odds over time with exact odometry.
+      *R5 counts unknown cells as obstacles, so on visible labels the blind zone covers the robot's own cell and no plan exists (a known issue we are fixing).
+      The closed-loop drop of R4 A* and R6+R4 is a local-target bug, not a property of R4: 22 of the 24 R4 A* failures are "no local plan", and greedy descent on the same map solves all 24.</p>
+
+    <h3 class="title is-4">Perception sources: what each map loses</h3>
+    <div class="table-container">
+      <table class="table is-fullwidth is-hoverable is-narrow results-table">
+        <thead>
+          <tr><th rowspan="2">Source</th><th rowspan="2">Fusion</th><th colspan="4">Closed loop, R1 planner (200 episodes)</th><th colspan="2">Map vs. amodal R1</th></tr>
+          <tr><th>Success [95% CI]</th><th>SPL</th><th>Coll.</th><th>Fail: budget / no plan</th><th>mIoU</th><th>Free prec.</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Amodal labels (privileged)</td><td>&ndash;</td><td>.955 [.92, .98]</td><td>.944</td><td>.32</td><td>3 / 6</td><td>1</td><td>1</td></tr>
+          <tr class="group"><td>2D LiDAR</td><td>&ndash;</td><td>.940 [.90, .97]</td><td>.929</td><td>.54</td><td>12 / 0</td><td>.351</td><td>.906</td></tr>
+          <tr><td></td><td>log-odds</td><td>.940 [.90, .97]</td><td>.930</td><td>.53</td><td>12 / 0</td><td></td><td></td></tr>
+          <tr><td>3D LiDAR</td><td>&ndash;</td><td>.960 [.92, .98]</td><td>.949</td><td>.46</td><td>8 / 0</td><td>.409</td><td>.924</td></tr>
+          <tr class="group"><td>Visible depth, exact</td><td>&ndash;</td><td>.720 [.65, .78]</td><td>.672</td><td>.32</td><td>56 / 0</td><td>.288</td><td>.955</td></tr>
+          <tr><td></td><td>log-odds</td><td>.925 [.88, .95]</td><td>.904</td><td>.27</td><td>15 / 0</td><td></td><td></td></tr>
+          <tr class="group"><td>Visible depth, noisy</td><td>&ndash;</td><td>.770 [.71, .82]</td><td>.727</td><td>.30</td><td>46 / 0</td><td>.277</td><td>.958</td></tr>
+          <tr><td></td><td>log-odds</td><td>.690 [.62, .75]</td><td>.670</td><td>.21</td><td>35 / 27</td><td></td><td></td></tr>
+          <tr><td></td><td>symmetric</td><td>.770 [.71, .82]</td><td>.749</td><td>.24</td><td>28 / 18</td><td></td><td></td></tr>
+          <tr><td></td><td>log-odds, noisy odom.</td><td>.745 [.68, .80]</td><td>.718</td><td>.20</td><td>6 / 45</td><td></td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-note">"Visible depth" back-projects the camera's own depth image, the input a monocular network would replace; "noisy" scales each image by N(1, 0.05) and adds 2% per-pixel noise.
+      Single-frame maps know only the visible ~30% of the cells the amodal label covers: in the visible region their mIoU is 0.91, so the loss is coverage, not accuracy.
+      Exact visible depth fails by turning in place (all 56 failures run out of steps), a controller artefact of single-frame maps; fusing exact depth recovers 44 episodes and loses 3 (p&nbsp;&lt;&nbsp;10<sup>&minus;9</sup>).</p>
+
+    <h3 class="title is-4">A label artefact we found: R7 snaps to 45&deg;</h3>
+    <div class="columns is-vcentered">
+      <div class="column is-half"><img src="static/images/fig_r7_error.png" alt="R7 heading error against the true direction to goal"></div>
+      <div class="column">
+        <div class="content has-text-justified">
+          <p>On an empty floor, many staircase paths tie for shortest on the 8-connected grid, so R7 arrows snap towards multiples
+            of 45&deg;: mean error 17&deg;, maximum 43&deg;. The error follows the <i>world</i> grid while the label is egocentric, so it is
+            label noise a network cannot explain. Grid planners are unaffected (oracle success 1.00), which is why the oracle missed it.
+            Fast marching or any-angle paths will remove it, together with the length bias in R4 and R6.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Tools -->
+<section class="section alt">
+  <div class="container is-max-desktop">
+    <div class="columns is-vcentered">
+      <div class="column is-7"><video poster="static/videos/viewer_00861.jpg" autoplay muted loop playsinline><source src="static/videos/viewer_00861.mp4" type="video/mp4"></video></div>
+      <div class="column">
+        <h2 class="title is-4">One viewer for everything</h2>
+        <div class="content">
+          <p>A browser-based viewer drives the robot live in any scene (WASD), shows every representation from every source
+            (ground truth, LiDAR, pseudo-LiDAR, noisy, fused, model), plans on the whole floor or drives the closed loop, and
+            browses generated frames and result files.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Next steps -->
+<section class="section" id="next">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3">Next steps</h2>
+    <div class="columns">
+      <div class="column">
+        <h3 class="title is-5">Label fixes before training</h3>
+        <div class="content"><ul>
+          <li>Fast marching or any-angle paths for R4, R6 and R7 (removes the 45&deg; snapping and the length bias).</li>
+          <li>Clip or log-scale the R6 and R4 regression targets; several goals per frame for goal-conditioned heads.</li>
+          <li>One occupancy threshold rule for visible and amodal labels.</li>
+        </ul></div>
+        <h3 class="title is-5">Planner fixes</h3>
+        <div class="content"><ul>
+          <li>Pick the local R4 target among cells connected to the robot inside the crop.</li>
+          <li>A dither guard that catches heading flips over 25&deg; (the turn-in-place failures).</li>
+          <li>Symmetric log-odds when fusing predicted maps.</li>
+        </ul></div>
+      </div>
+      <div class="column">
+        <h3 class="title is-5">Stage 3 and 4</h3>
+        <div class="content"><ul>
+          <li><b>Monocular predictor:</b> a Lift-Splat-style network with indoor depth range, height-banded splatting and a pretrained backbone (ResNet-50 / DINOv2), trained on HM3D scenes split by scene.</li>
+          <li><b>Fusion and ablations:</b> odometry-based fusion of predictions; visible vs. amodal supervision; single-frame vs. accumulated.</li>
+        </ul></div>
+        <h3 class="title is-5">Timeline</h3>
+        <table class="table is-narrow is-fullwidth timeline">
+          <tbody>
+            <tr><td>Nov 6&ndash;9</td><td>Planner and label fixes, Stage 2 decision</td></tr>
+            <tr><td>Nov 10&ndash;16</td><td>Training data, baseline Lift-Splat, literature review</td></tr>
+            <tr><td>Nov 17&ndash;20</td><td>Our architecture: train and compare on map and navigation metrics</td></tr>
+            <tr><td>Nov 21&ndash;23</td><td>Closed-loop evaluation, fusion (Stage 4), ablations, final report</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section alt" id="cite">
+  <div class="container is-max-desktop content">
+    <h2 class="title is-4">Cite</h2>
+    <pre><code>@misc{rungta2026beverage,
+  title  = {BEVerage: Learning Navigable Bird's-Eye-View Representations
+            from a Single Camera for Indoor Local Planning},
+  author = {Rungta, Anay and Sudarshan, Advaith and Sinha, Siddharth},
+  year   = {2026},
+  note   = {Mobile Robotics course project, IIIT Hyderabad}
+}</code></pre>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="content has-text-centered">
+      <p>Scenes from HM3D (Habitat-Matterport 3D), rendered with Habitat-Sim.<br>
+        Page layout adapted from the <a href="https://github.com/nerfies/nerfies.github.io">Nerfies project page</a>,
+        licensed under <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var notes = {
+      teaser_gt_r1: ["ok", "Reaches the goal in 65 steps."],
+      teaser_pseudo_r1: ["fail", "Turns in place until the 500-step budget runs out (shown 3× faster)."],
+      teaser_pseudo_acc_r1: ["ok", "Noisy depth, fused with log-odds over time: reaches the goal in 62 steps."]
+    };
+    var video = document.getElementById("teaser-video");
+    var note = document.getElementById("teaser-note");
+    document.querySelectorAll(".teaser-switch .button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        document.querySelectorAll(".teaser-switch .button").forEach(function (o) { o.classList.remove("is-selected"); });
+        b.classList.add("is-selected");
+        var s = b.getAttribute("data-src");
+        video.poster = "static/videos/" + s + ".jpg";
+        video.src = "static/videos/" + s + ".mp4";
+        video.play();
+        note.className = "tag-line " + notes[s][0];
+        note.textContent = notes[s][1];
+      });
+    });
+  })();
+</script>
+</body>
+</html>
