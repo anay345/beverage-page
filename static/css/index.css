@@ -8,11 +8,14 @@ body { font-family: 'Noto Sans', sans-serif; color: #2b2b2b; }
 .publication-links .button[disabled] { opacity: 0.55; cursor: default; }
 
 .hero.teaser .hero-body { padding-top: 0; padding-bottom: 2rem; }
-.teaser-switch { margin-bottom: 0.75rem !important; }
-.teaser-switch .button { font-weight: 600; }
-.teaser-switch .button.ok { color: #1a7f37; }
-.teaser-switch .button.fail { color: #cf222e; }
-.teaser-switch .button.is-selected { background: #2b2b2b; color: #fff; border-color: #2b2b2b; }
+.switcher .buttons { margin-bottom: 0.75rem !important; }
+.switcher .button { font-weight: 600; }
+.switcher .button.ok { color: #1a7f37; }
+.switcher .button.fail { color: #cf222e; }
+.switcher .button.is-selected { background: #2b2b2b; color: #fff; border-color: #2b2b2b; }
+.more-tabs { margin-bottom: 1.25rem !important; }
+.more-tabs li.is-active a { background: #1f6feb !important; border-color: #1f6feb !important; }
+.tab-caption { color: #555; font-size: 0.92rem; margin-top: 0.4rem; text-align: center; }
 video { width: 100%; border-radius: 6px; display: block; background: #111; }
 .teaser-caption { font-size: 1.1rem; margin-top: 1rem; }
 .video-legend { text-align: center; color: #777; font-size: 0.85rem; margin-top: 0.4rem; }
@@ -51,7 +54,8 @@ pre { font-size: 0.85rem; }
   .publication-title { font-size: 1.85rem !important; }
   .publication-authors { font-size: 1rem !important; }
   .hero-body, .section { padding-left: 1rem; padding-right: 1rem; }
-  .teaser-switch { flex-direction: column; align-items: stretch; }
-  .teaser-switch .button { width: 100%; margin: 0 0 -1px 0 !important; border-radius: 0 !important; }
+  .switcher .buttons { flex-direction: column; align-items: stretch; }
+  .switcher .button { width: 100%; margin: 0 0 -1px 0 !important; border-radius: 0 !important; }
+  .more-tabs ul { flex-wrap: wrap; justify-content: center; }
   .teaser-caption { font-size: 1rem; }
 }

@@ -26,7 +26,7 @@
         <span class="author-block">Siddharth Sinha</span>
       </div>
       <div class="is-size-5 publication-authors">
-        <span class="author-block">IIIT Hyderabad &middot; Mobile Robotics, Monsoon 2026 &middot; Mid submission</span>
+        <span class="author-block">IIIT Hyderabad &middot; Mobile Robotics course project &middot; Mid submission</span>
       </div>
 
       <div class="publication-links">
@@ -51,20 +51,23 @@
 <section class="hero teaser">
   <div class="container is-max-desktop">
     <div class="hero-body">
-      <div class="teaser-switch buttons has-addons is-centered">
-        <button class="button is-selected ok" data-src="teaser_gt_r1"><span class="icon"><i class="fas fa-check"></i></span><span>Amodal ground-truth map</span></button>
-        <button class="button fail" data-src="teaser_pseudo_r1"><span class="icon"><i class="fas fa-xmark"></i></span><span>This frame's depth only</span></button>
-        <button class="button ok" data-src="teaser_pseudo_acc_r1"><span class="icon"><i class="fas fa-check"></i></span><span>Depth fused over time</span></button>
+      <div class="switcher">
+        <div class="buttons has-addons is-centered">
+          <button class="button is-selected ok" data-src="teaser_gt_r1" data-cls="ok" data-note="Reaches the goal in 65 steps."><span class="icon"><i class="fas fa-check"></i></span><span>Amodal ground-truth map</span></button>
+          <button class="button fail" data-src="teaser_pseudo_r1" data-cls="fail" data-note="Turns in place until the 500-step budget runs out (shown 3&times; faster)."><span class="icon"><i class="fas fa-xmark"></i></span><span>This frame's depth only</span></button>
+          <button class="button ok" data-src="teaser_pseudo_acc_r1" data-cls="ok" data-note="Noisy depth, fused with log-odds over time: reaches the goal in 62 steps."><span class="icon"><i class="fas fa-check"></i></span><span>Depth fused over time</span></button>
+        </div>
+        <video poster="static/videos/teaser_gt_r1.jpg" autoplay muted loop playsinline>
+          <source src="static/videos/teaser_gt_r1.mp4" type="video/mp4"></video>
+        <p class="note tag-line ok">Reaches the goal in 65 steps.</p>
       </div>
-      <video id="teaser-video" poster="static/videos/teaser_gt_r1.jpg" autoplay muted loop playsinline>
-        <source src="static/videos/teaser_gt_r1.mp4" type="video/mp4"></video>
-      <p id="teaser-note" class="tag-line ok">Reaches the goal in 65 steps.</p>
       <h2 class="subtitle has-text-centered teaser-caption">
         Same episode (HM3D minival 00802), same R1 planner, three maps. A map built only from what the
         camera sees right now leaves the robot turning in place until it runs out of steps: what it cannot
         see matters more than which representation it uses.
       </h2>
-      <p class="video-legend">Each video: camera view &middot; the 4&nbsp;m egocentric map the planner sees (yellow: local plan, magenta: subgoal) &middot; the floor map with the driven path. Sped up.</p>
+      <p class="video-legend">Each video: camera view &middot; the 4&nbsp;m egocentric map the planner sees (yellow: local plan, magenta: subgoal) &middot; the floor map with the driven path. Sped up.<br>
+        All videos are example episodes from our own evaluation runs; the reported numbers are in <a href="#results">Results</a>.</p>
     </div>
   </div>
 </section>
@@ -204,6 +207,110 @@
     <div class="columns video-grid">
       <div class="column"><video poster="static/videos/rep_00800_lidar_r1.jpg" autoplay muted loop playsinline><source src="static/videos/rep_00800_lidar_r1.mp4" type="video/mp4"></video><p class="video-label">2D LiDAR costmap</p></div>
       <div class="column"><video poster="static/videos/rep_00800_lidar3d_r1.jpg" autoplay muted loop playsinline><source src="static/videos/rep_00800_lidar3d_r1.mp4" type="video/mp4"></video><p class="video-label">3D LiDAR costmap</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- More videos -->
+<section class="section" id="more-videos">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3">More videos</h2>
+    <div class="tabs is-toggle is-small is-centered more-tabs">
+      <ul>
+        <li class="is-active" data-tab="t-all"><a>All 7 maps</a></li>
+        <li data-tab="t-vis"><a>Visible vs. amodal</a></li>
+        <li data-tab="t-grow"><a>Grown obstacles</a></li>
+        <li data-tab="t-flip"><a>Flipped cells</a></li>
+        <li data-tab="t-r4"><a>R4 A* bug</a></li>
+        <li data-tab="t-spin"><a>Turning in place</a></li>
+        <li data-tab="t-lidar"><a>2D vs. 3D LiDAR</a></li>
+      </ul>
+    </div>
+
+    <div class="tab-panel" id="t-all">
+      <div class="switcher">
+        <div class="buttons has-addons is-centered">
+          <button class="button is-selected" data-src="allreps_00808_amodal" data-note="Amodal labels: cropped from the fused floor map, so occluded space and the blind zone are filled in.">Amodal labels</button>
+          <button class="button" data-src="allreps_00808_visible" data-note="Visible labels: only what this frame's depth shows; everything else is unknown.">Visible labels</button>
+        </div>
+        <video poster="static/videos/allreps_00808_amodal.jpg" muted loop playsinline><source src="static/videos/allreps_00808_amodal.mp4" type="video/mp4"></video>
+        <p class="note tag-line">Amodal labels: cropped from the fused floor map, so occluded space and the blind zone are filled in.</p>
+      </div>
+      <p class="tab-caption">All seven representations recomputed at every step while the robot drives four short episodes in HM3D 00808 (the scene of the figure above). Red hatching: the blind zone in front of the robot that the camera never sees.</p>
+    </div>
+
+    <div class="tab-panel" id="t-vis">
+      <div class="switcher">
+        <div class="buttons has-addons is-centered">
+          <button class="button is-selected ok" data-src="vis_00808_amodal" data-cls="ok" data-note="Amodal labels: reaches the goal in 60 steps."><span class="icon"><i class="fas fa-check"></i></span><span>Amodal</span></button>
+          <button class="button fail" data-src="vis_00808_visible" data-cls="fail" data-note="Visible labels of this frame only: turns in place until the 500-step budget runs out (shown 3&times; faster)."><span class="icon"><i class="fas fa-xmark"></i></span><span>Visible</span></button>
+          <button class="button ok" data-src="vis_00808_fused" data-cls="ok" data-note="Visible labels fused over time (log-odds): reaches the goal in 75 steps."><span class="icon"><i class="fas fa-check"></i></span><span>Visible + fusion</span></button>
+        </div>
+        <video poster="static/videos/vis_00808_amodal.jpg" muted loop playsinline><source src="static/videos/vis_00808_amodal.mp4" type="video/mp4"></video>
+        <p class="note tag-line ok">Amodal labels: reaches the goal in 60 steps.</p>
+      </div>
+      <p class="tab-caption">Same episode (HM3D 00808), same R1 planner, privileged labels in all three. Only what the labels cover changes: the headline result of Table 1, where every planner loses 23&ndash;40 points on visible-only labels and fusion recovers most of it.</p>
+    </div>
+
+    <div class="tab-panel" id="t-grow">
+      <div class="switcher">
+        <div class="buttons has-addons is-centered">
+          <button class="button is-selected fail" data-src="grow_00800_r1" data-cls="fail" data-note="R1: the grown obstacles seal the doorway; &ldquo;no local plan&rdquo; for 37 steps, episode fails."><span class="icon"><i class="fas fa-xmark"></i></span><span>R1</span></button>
+          <button class="button ok" data-src="grow_00800_r5" data-cls="ok" data-note="R5 clearance: the narrowed doorway is expensive, not closed; reaches the goal in 101 steps."><span class="icon"><i class="fas fa-check"></i></span><span>R5 A*</span></button>
+          <button class="button fail" data-src="grow_00800_r7" data-cls="fail" data-note="R7 A*: no local plan, episode fails."><span class="icon"><i class="fas fa-xmark"></i></span><span>R7 A*</span></button>
+        </div>
+        <video poster="static/videos/grow_00800_r1.jpg" muted loop playsinline><source src="static/videos/grow_00800_r1.mp4" type="video/mp4"></video>
+        <p class="note tag-line fail">R1: the grown obstacles seal the doorway; &ldquo;no local plan&rdquo; for 37 steps, episode fails.</p>
+      </div>
+      <p class="tab-caption">Obstacles grown by 3 cells (15&nbsp;cm) in the source map, every representation rebuilt from it: the closed-loop version of Figure&nbsp;3a (HM3D 00800).</p>
+    </div>
+
+    <div class="tab-panel" id="t-flip">
+      <div class="switcher">
+        <div class="buttons has-addons is-centered">
+          <button class="button is-selected ok" data-src="flip_00802_clean" data-cls="ok" data-note="Clean R1: 65 steps.">Clean R1</button>
+          <button class="button" data-src="flip_00802_noisy" data-note="2% of R1 cells flipped, redrawn every step: still arrives, but after 246 steps (shown 3&times; faster).">2% flipped</button>
+        </div>
+        <video poster="static/videos/flip_00802_clean.jpg" muted loop playsinline><source src="static/videos/flip_00802_clean.mp4" type="video/mp4"></video>
+        <p class="note tag-line ok">Clean R1: 65 steps.</p>
+      </div>
+      <p class="tab-caption">2% random R1 flips (HM3D 00802). In the whole-floor oracle the same rate takes success to 0, because the flips stay put and close every passage. In the closed loop they are redrawn every step, so a blocked passage reopens a step later: here the robot still arrives, but wanders for almost four times as long.</p>
+    </div>
+
+    <div class="tab-panel" id="t-r4">
+      <div class="switcher">
+        <div class="buttons has-addons is-centered">
+          <button class="button is-selected fail" data-src="r4bug_00861_r4_astar" data-cls="fail" data-note="R4 A*: the local target is the lowest-R4 cell in the crop, behind a wall; no local plan, episode stops after 38 steps."><span class="icon"><i class="fas fa-xmark"></i></span><span>R4 A*</span></button>
+          <button class="button ok" data-src="r4bug_00861_r1" data-cls="ok" data-note="R1 on the same episode: 55 steps."><span class="icon"><i class="fas fa-check"></i></span><span>R1</span></button>
+        </div>
+        <video poster="static/videos/r4bug_00861_r4_astar.jpg" muted loop playsinline><source src="static/videos/r4bug_00861_r4_astar.mp4" type="video/mp4"></video>
+        <p class="note tag-line fail">R4 A*: the local target is the lowest-R4 cell in the crop, behind a wall; no local plan, episode stops after 38 steps.</p>
+      </div>
+      <p class="tab-caption">The closed-loop R4 A* failure mode from Section 4, on amodal labels (HM3D example scene 00861). It is a target-selection bug in the local planner, not a property of R4.</p>
+    </div>
+
+    <div class="tab-panel" id="t-spin">
+      <div class="switcher">
+        <div class="buttons has-addons is-centered">
+          <button class="button is-selected fail" data-src="spin_00799_pseudo" data-cls="fail" data-note="Map from this frame's exact depth: turns in place until the 500-step budget runs out (shown 3&times; faster)."><span class="icon"><i class="fas fa-xmark"></i></span><span>Single-frame depth</span></button>
+          <button class="button ok" data-src="spin_00799_gt" data-cls="ok" data-note="Amodal labels: 49 steps."><span class="icon"><i class="fas fa-check"></i></span><span>Amodal labels</span></button>
+        </div>
+        <video poster="static/videos/spin_00799_pseudo.jpg" muted loop playsinline><source src="static/videos/spin_00799_pseudo.mp4" type="video/mp4"></video>
+        <p class="note tag-line fail">Map from this frame's exact depth: turns in place until the 500-step budget runs out (shown 3&times; faster).</p>
+      </div>
+      <p class="tab-caption">The turn-in-place failure of single-frame maps, here in an unfurnished HM3D scene (00799): each 10&deg; turn changes which cells are known, the aim flips sides, and the controller's dither guard does not catch it.</p>
+    </div>
+
+    <div class="tab-panel" id="t-lidar">
+      <div class="switcher">
+        <div class="buttons has-addons is-centered">
+          <button class="button is-selected" data-src="lidar_00796_2d" data-note="2D LiDAR: reaches the goal, 10 collisions.">2D LiDAR</button>
+          <button class="button" data-src="lidar_00796_3d" data-note="3D LiDAR: reaches the goal, 7 collisions.">3D LiDAR</button>
+        </div>
+        <video poster="static/videos/lidar_00796_2d.jpg" muted loop playsinline><source src="static/videos/lidar_00796_2d.mp4" type="video/mp4"></video>
+        <p class="note tag-line">2D LiDAR: reaches the goal, 10 collisions.</p>
+      </div>
+      <p class="tab-caption">Both LiDAR costmaps reach the goal in this unfurnished scene (HM3D 00796); the planar scan collides more often, in line with the 54% vs. 46% share of episodes with a collision in Table 2.</p>
     </div>
   </div>
 </section>
@@ -379,25 +486,35 @@
 
 <script>
   (function () {
-    var notes = {
-      teaser_gt_r1: ["ok", "Reaches the goal in 65 steps."],
-      teaser_pseudo_r1: ["fail", "Turns in place until the 500-step budget runs out (shown 3× faster)."],
-      teaser_pseudo_acc_r1: ["ok", "Noisy depth, fused with log-odds over time: reaches the goal in 62 steps."]
-    };
-    var video = document.getElementById("teaser-video");
-    var note = document.getElementById("teaser-note");
-    document.querySelectorAll(".teaser-switch .button").forEach(function (b) {
-      b.addEventListener("click", function () {
-        document.querySelectorAll(".teaser-switch .button").forEach(function (o) { o.classList.remove("is-selected"); });
-        b.classList.add("is-selected");
-        var s = b.getAttribute("data-src");
-        video.poster = "static/videos/" + s + ".jpg";
-        video.src = "static/videos/" + s + ".mp4";
-        video.play();
-        note.className = "tag-line " + notes[s][0];
-        note.textContent = notes[s][1];
+    // A switcher: buttons swap the one video (and its note) between clips of the same episode.
+    document.querySelectorAll(".switcher").forEach(function (sw) {
+      var video = sw.querySelector("video"), note = sw.querySelector(".note");
+      sw.querySelectorAll(".buttons .button").forEach(function (b) {
+        b.addEventListener("click", function () {
+          sw.querySelectorAll(".buttons .button").forEach(function (o) { o.classList.remove("is-selected"); });
+          b.classList.add("is-selected");
+          var s = b.getAttribute("data-src");
+          video.poster = "static/videos/" + s + ".jpg";
+          video.src = "static/videos/" + s + ".mp4";
+          video.play();
+          note.className = "note tag-line " + (b.getAttribute("data-cls") || "");
+          note.innerHTML = b.getAttribute("data-note");
+        });
       });
     });
+
+    // Tabs of the "More videos" section: show one panel, play only its video.
+    var tabs = document.querySelectorAll(".more-tabs li");
+    function show(id) {
+      tabs.forEach(function (t) { t.classList.toggle("is-active", t.getAttribute("data-tab") === id); });
+      document.querySelectorAll(".tab-panel").forEach(function (p) {
+        var on = p.id === id, v = p.querySelector("video");
+        p.style.display = on ? "" : "none";
+        if (on) { v.play(); } else { v.pause(); }
+      });
+    }
+    tabs.forEach(function (t) { t.addEventListener("click", function () { show(t.getAttribute("data-tab")); }); });
+    show("t-all");
   })();
 </script>
 </body>
