@@ -72,7 +72,6 @@ pre { font-size: 0.85rem; }
 .arch .b-head { fill: #fbefff; stroke: #c297ff; }
 .arch .b-loss { fill: #fff1e5; stroke: #fb8f44; }
 .arch .b-new { stroke: #cf222e; stroke-width: 2.4; stroke-dasharray: 6 3; }
-.arch text { fill: #1f2328; }
 .new-tag { border: 2px dashed #cf222e; border-radius: 4px; padding: 0 0.3rem; color: #cf222e; font-weight: 600; }
 .video-caption { font-size: 0.9rem; color: #57606a; margin-top: 0.4rem; }
 #stage3 video { width: 100%; border-radius: 6px; }

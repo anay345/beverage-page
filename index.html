@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.4/css/academicons.min.css">
-  <link rel="stylesheet" href="static/css/index.css">
+  <link rel="stylesheet" href="static/css/index.css?v=2">
   <link rel="icon" href="static/images/favicon.svg">
 </head>
 <body>
@@ -431,22 +431,22 @@
         <defs>
           <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#57606a"/></marker>
         </defs>
-        <g font-family="Noto Sans, sans-serif" font-size="12" text-anchor="middle">
-          <rect x="10" y="40" width="120" height="96" rx="8" class="b-img"/>
+        <g font-family="Noto Sans, sans-serif" font-size="12" text-anchor="middle" fill="#1f2328">
+          <rect x="10" y="40" width="120" height="96" rx="8" class="b-img" fill="#ddf4ff" stroke="#54aeff" stroke-width="1.4"/>
           <text x="70" y="70" font-weight="700">RGB image</text><text x="70" y="90">240 &#215; 320</text><text x="70" y="108">one frame</text>
-          <rect x="160" y="40" width="130" height="96" rx="8" class="b-img"/>
+          <rect x="160" y="40" width="130" height="96" rx="8" class="b-img" fill="#ddf4ff" stroke="#54aeff" stroke-width="1.4"/>
           <text x="225" y="66" font-weight="700">ResNet-50</text><text x="225" y="84">layers 1&#8211;3</text><text x="225" y="102">stride 16</text><text x="225" y="120">15 &#215; 20 &#215; 1024</text>
-          <rect x="320" y="40" width="140" height="96" rx="8" class="b-depth"/>
+          <rect x="320" y="40" width="140" height="96" rx="8" class="b-depth" fill="#fff8c5" stroke="#d4a72c" stroke-width="1.4"/>
           <text x="390" y="66" font-weight="700">Depth + context</text><text x="390" y="84">48 depth bins</text><text x="390" y="102">0.25&#8211;5 m</text><text x="390" y="120">64 context ch.</text>
-          <rect x="490" y="40" width="130" height="96" rx="8" class="b-depth"/>
+          <rect x="490" y="40" width="130" height="96" rx="8" class="b-depth" fill="#fff8c5" stroke="#d4a72c" stroke-width="1.4"/>
           <text x="555" y="70" font-weight="700">Lift</text><text x="555" y="90">p(depth) &#8855; context</text><text x="555" y="108">camera frustum</text>
-          <rect x="650" y="40" width="140" height="96" rx="8" class="b-bev"/>
+          <rect x="650" y="40" width="140" height="96" rx="8" class="b-bev" fill="#dafbe1" stroke="#4ac26b" stroke-width="1.4"/>
           <text x="720" y="66" font-weight="700">Splat</text><text x="720" y="84">3 height bands</text><text x="720" y="102">80 &#215; 80 grid, 5 cm</text><text x="720" y="120">+ goal channels</text>
-          <rect x="820" y="40" width="140" height="96" rx="8" class="b-bev"/>
+          <rect x="820" y="40" width="140" height="96" rx="8" class="b-bev" fill="#dafbe1" stroke="#4ac26b" stroke-width="1.4"/>
           <text x="890" y="66" font-weight="700">BEV encoder</text><text x="890" y="84">dilated residual</text><text x="890" y="102">dil. 1, 2, 4, 8, 1</text><text x="890" y="120">96 ch, RF &#8776; 3.3 m</text>
-          <rect x="990" y="22" width="100" height="40" rx="8" class="b-head"/><text x="1040" y="47">R1 occupancy</text>
-          <rect x="990" y="68" width="100" height="40" rx="8" class="b-head"/><text x="1040" y="93">R2 bands</text>
-          <rect x="990" y="114" width="100" height="40" rx="8" class="b-head"/><text x="1040" y="139">R5 clearance</text>
+          <rect x="990" y="22" width="100" height="40" rx="8" class="b-head" fill="#fbefff" stroke="#c297ff" stroke-width="1.4"/><text x="1040" y="47">R1 occupancy</text>
+          <rect x="990" y="68" width="100" height="40" rx="8" class="b-head" fill="#fbefff" stroke="#c297ff" stroke-width="1.4"/><text x="1040" y="93">R2 bands</text>
+          <rect x="990" y="114" width="100" height="40" rx="8" class="b-head" fill="#fbefff" stroke="#c297ff" stroke-width="1.4"/><text x="1040" y="139">R5 clearance</text>
           <g stroke="#57606a" stroke-width="1.6" fill="none" marker-end="url(#ah)">
             <path d="M130,88 H158"/><path d="M290,88 H318"/><path d="M460,88 H488"/><path d="M620,88 H648"/><path d="M790,88 H818"/>
             <path d="M960,88 H975 V42 H988"/><path d="M960,88 H988"/><path d="M960,88 H975 V134 H988"/>
@@ -461,29 +461,29 @@
     <figure class="arch">
       <svg viewBox="0 0 1100 214" role="img" aria-label="U-Net completion architecture">
         <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#57606a"/></marker></defs>
-        <g font-family="Noto Sans, sans-serif" font-size="12" text-anchor="middle">
-          <rect x="10" y="40" width="120" height="96" rx="8" class="b-img"/>
+        <g font-family="Noto Sans, sans-serif" font-size="12" text-anchor="middle" fill="#1f2328">
+          <rect x="10" y="40" width="120" height="96" rx="8" class="b-img" fill="#ddf4ff" stroke="#54aeff" stroke-width="1.4"/>
           <text x="70" y="70" font-weight="700">RGB image</text><text x="70" y="90">240 &#215; 320</text><text x="70" y="108">one frame</text>
-          <rect x="160" y="40" width="130" height="96" rx="8" class="b-img b-new"/>
+          <rect x="160" y="40" width="130" height="96" rx="8" class="b-img b-new" fill="#ddf4ff" stroke="#cf222e" stroke-width="2.4" stroke-dasharray="6 3"/>
           <text x="225" y="62" font-weight="700">ResNet-50 + FPN</text><text x="225" y="80">layer2 + up(layer3)</text><text x="225" y="98">stride 8</text><text x="225" y="116">30 &#215; 40 &#215; 256</text>
-          <rect x="320" y="40" width="140" height="96" rx="8" class="b-depth"/>
+          <rect x="320" y="40" width="140" height="96" rx="8" class="b-depth" fill="#fff8c5" stroke="#d4a72c" stroke-width="1.4"/>
           <text x="390" y="66" font-weight="700">Depth + context</text><text x="390" y="84">48 depth bins</text><text x="390" y="102">0.25&#8211;5 m</text><text x="390" y="120">64 context ch.</text>
-          <rect x="490" y="40" width="130" height="96" rx="8" class="b-depth"/>
+          <rect x="490" y="40" width="130" height="96" rx="8" class="b-depth" fill="#fff8c5" stroke="#d4a72c" stroke-width="1.4"/>
           <text x="555" y="70" font-weight="700">Lift</text><text x="555" y="90">p(depth) &#8855; context</text><text x="555" y="108">4&#215; more rays</text>
-          <rect x="650" y="40" width="140" height="96" rx="8" class="b-bev b-new"/>
+          <rect x="650" y="40" width="140" height="96" rx="8" class="b-bev b-new" fill="#dafbe1" stroke="#cf222e" stroke-width="2.4" stroke-dasharray="6 3"/>
           <text x="720" y="62" font-weight="700">Splat + visibility</text><text x="720" y="80">3 height bands</text><text x="720" y="98">+ log(1 + depth mass)</text><text x="720" y="116">= what was observed</text>
-          <rect x="820" y="40" width="140" height="96" rx="8" class="b-bev b-new"/>
+          <rect x="820" y="40" width="140" height="96" rx="8" class="b-bev b-new" fill="#dafbe1" stroke="#cf222e" stroke-width="2.4" stroke-dasharray="6 3"/>
           <text x="890" y="62" font-weight="700">U-Net decoder</text><text x="890" y="80">80&#8594;40&#8594;20&#8594;10&#8594;80</text><text x="890" y="98">skip connections</text><text x="890" y="116">96&#8211;384 ch, whole grid</text>
-          <rect x="990" y="22" width="100" height="40" rx="8" class="b-head"/><text x="1040" y="47">R1 occupancy</text>
-          <rect x="990" y="68" width="100" height="40" rx="8" class="b-head"/><text x="1040" y="93">R2 bands</text>
-          <rect x="990" y="114" width="100" height="40" rx="8" class="b-head"/><text x="1040" y="139">R5 clearance</text>
+          <rect x="990" y="22" width="100" height="40" rx="8" class="b-head" fill="#fbefff" stroke="#c297ff" stroke-width="1.4"/><text x="1040" y="47">R1 occupancy</text>
+          <rect x="990" y="68" width="100" height="40" rx="8" class="b-head" fill="#fbefff" stroke="#c297ff" stroke-width="1.4"/><text x="1040" y="93">R2 bands</text>
+          <rect x="990" y="114" width="100" height="40" rx="8" class="b-head" fill="#fbefff" stroke="#c297ff" stroke-width="1.4"/><text x="1040" y="139">R5 clearance</text>
           <g stroke="#57606a" stroke-width="1.6" fill="none" marker-end="url(#ah2)">
             <path d="M130,88 H158"/><path d="M290,88 H318"/><path d="M460,88 H488"/><path d="M620,88 H648"/><path d="M790,88 H818"/>
             <path d="M960,88 H975 V42 H988"/><path d="M960,88 H988"/><path d="M960,88 H975 V134 H988"/>
           </g>
           <path d="M390,184 V140" stroke="#cf222e" stroke-width="1.4" stroke-dasharray="4 3" fill="none" marker-end="url(#ah2)"/>
           <text x="390" y="197" fill="#cf222e" font-size="11.5">depth-bin loss (training only)</text>
-          <rect x="760" y="160" width="330" height="46" rx="8" class="b-loss b-new"/>
+          <rect x="760" y="160" width="330" height="46" rx="8" class="b-loss b-new" fill="#fff1e5" stroke="#cf222e" stroke-width="2.4" stroke-dasharray="6 3"/>
           <text x="925" y="180">loss weighted &#215;2 on cells the frame does not see</text><text x="925" y="198">and within 0.4 m of obstacles; mixed precision</text>
         </g>
       </svg>
