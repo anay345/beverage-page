@@ -59,3 +59,20 @@ pre { font-size: 0.85rem; }
   .more-tabs ul { flex-wrap: wrap; justify-content: center; }
   .teaser-caption { font-size: 1rem; }
 }
+
+/* Post mid-evaluation section */
+.update-tag { display: inline-block; background: #ddf4ff; color: #0550ae; border-radius: 999px; padding: 0.15rem 0.8rem; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.6rem; }
+.arch-label { margin: 1.2rem 0 0.3rem; }
+.arch { margin: 0 0 0.6rem; overflow-x: auto; }
+.arch svg { width: 100%; min-width: 640px; height: auto; display: block; }
+.arch rect { stroke-width: 1.4; }
+.arch .b-img { fill: #ddf4ff; stroke: #54aeff; }
+.arch .b-depth { fill: #fff8c5; stroke: #d4a72c; }
+.arch .b-bev { fill: #dafbe1; stroke: #4ac26b; }
+.arch .b-head { fill: #fbefff; stroke: #c297ff; }
+.arch .b-loss { fill: #fff1e5; stroke: #fb8f44; }
+.arch .b-new { stroke: #cf222e; stroke-width: 2.4; stroke-dasharray: 6 3; }
+.arch text { fill: #1f2328; }
+.new-tag { border: 2px dashed #cf222e; border-radius: 4px; padding: 0 0.3rem; color: #cf222e; font-weight: 600; }
+.video-caption { font-size: 0.9rem; color: #57606a; margin-top: 0.4rem; }
+#stage3 video { width: 100%; border-radius: 6px; }

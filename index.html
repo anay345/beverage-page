@@ -39,6 +39,9 @@
         <a href="#videos" class="button is-dark is-rounded">
           <span class="icon"><i class="fas fa-film"></i></span><span>Videos</span>
         </a>
+        <a href="#stage3" class="button is-link is-rounded">
+          <span class="icon"><i class="fas fa-brain"></i></span><span>Post mid-eval: learned model</span>
+        </a>
         <span class="button is-dark is-rounded" disabled title="The code repository is private for now">
           <span class="icon"><i class="fab fa-github"></i></span><span>Code (coming soon)</span>
         </span>
@@ -405,6 +408,173 @@
   </div>
 </section>
 
+<!-- Post mid-evaluation: Stage 3 -->
+<section class="section" id="stage3">
+  <div class="container is-max-desktop">
+    <p class="update-tag">Post mid-evaluation update &middot; November 2026</p>
+    <h2 class="title is-3">Stage 3: learning the map from one RGB image</h2>
+    <div class="content has-text-justified">
+      <p>After the mid evaluation we trained a monocular predictor that turns one RGB frame into R1 (occupancy), R2 (height bands)
+        and R5 (clearance) on the robot's 4&nbsp;m egocentric grid, and plugged it into the same planners and the same minival episodes
+        as every other source. We predict these three because a single image can actually determine them. R4, R6 and R7
+        depend on the goal and on rooms the camera cannot see, so the planners derive them from the predicted maps instead.</p>
+      <p><b>Data.</b> 60 HM3D v0.2 training scenes (200 frames each) and 8 validation scenes (100 each), plus our earlier local scenes:
+        12,603 training and 795 validation frames, split by scene. The 10 minival scenes (00800&ndash;00809) are never trained on; they remain the test set.
+        <b>Training.</b> AdamW (lr 3&times;10<sup>&minus;4</sup>, weight decay 10<sup>&minus;4</sup>), one-cycle schedule, 20 epochs, batch 16, horizontal flips and colour jitter,
+        ImageNet-pretrained ResNet-50, depth-bin supervision from the depth sensor (training only). One Kaggle T4 per model.</p>
+    </div>
+
+    <h3 class="title is-4">Two architectures</h3>
+    <p class="arch-label"><b>A. Baseline Lift-Splat</b> (11.9M parameters)</p>
+    <figure class="arch">
+      <svg viewBox="0 0 1100 200" role="img" aria-label="Baseline Lift-Splat architecture">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#57606a"/></marker>
+        </defs>
+        <g font-family="Noto Sans, sans-serif" font-size="12" text-anchor="middle">
+          <rect x="10" y="40" width="120" height="96" rx="8" class="b-img"/>
+          <text x="70" y="70" font-weight="700">RGB image</text><text x="70" y="90">240 &#215; 320</text><text x="70" y="108">one frame</text>
+          <rect x="160" y="40" width="130" height="96" rx="8" class="b-img"/>
+          <text x="225" y="66" font-weight="700">ResNet-50</text><text x="225" y="84">layers 1&#8211;3</text><text x="225" y="102">stride 16</text><text x="225" y="120">15 &#215; 20 &#215; 1024</text>
+          <rect x="320" y="40" width="140" height="96" rx="8" class="b-depth"/>
+          <text x="390" y="66" font-weight="700">Depth + context</text><text x="390" y="84">48 depth bins</text><text x="390" y="102">0.25&#8211;5 m</text><text x="390" y="120">64 context ch.</text>
+          <rect x="490" y="40" width="130" height="96" rx="8" class="b-depth"/>
+          <text x="555" y="70" font-weight="700">Lift</text><text x="555" y="90">p(depth) &#8855; context</text><text x="555" y="108">camera frustum</text>
+          <rect x="650" y="40" width="140" height="96" rx="8" class="b-bev"/>
+          <text x="720" y="66" font-weight="700">Splat</text><text x="720" y="84">3 height bands</text><text x="720" y="102">80 &#215; 80 grid, 5 cm</text><text x="720" y="120">+ goal channels</text>
+          <rect x="820" y="40" width="140" height="96" rx="8" class="b-bev"/>
+          <text x="890" y="66" font-weight="700">BEV encoder</text><text x="890" y="84">dilated residual</text><text x="890" y="102">dil. 1, 2, 4, 8, 1</text><text x="890" y="120">96 ch, RF &#8776; 3.3 m</text>
+          <rect x="990" y="22" width="100" height="40" rx="8" class="b-head"/><text x="1040" y="47">R1 occupancy</text>
+          <rect x="990" y="68" width="100" height="40" rx="8" class="b-head"/><text x="1040" y="93">R2 bands</text>
+          <rect x="990" y="114" width="100" height="40" rx="8" class="b-head"/><text x="1040" y="139">R5 clearance</text>
+          <g stroke="#57606a" stroke-width="1.6" fill="none" marker-end="url(#ah)">
+            <path d="M130,88 H158"/><path d="M290,88 H318"/><path d="M460,88 H488"/><path d="M620,88 H648"/><path d="M790,88 H818"/>
+            <path d="M960,88 H975 V42 H988"/><path d="M960,88 H988"/><path d="M960,88 H975 V134 H988"/>
+          </g>
+          <path d="M390,184 V140" stroke="#cf222e" stroke-width="1.4" stroke-dasharray="4 3" fill="none" marker-end="url(#ah)"/>
+          <text x="390" y="197" fill="#cf222e" font-size="11.5">depth-bin loss from the depth sensor (training only)</text>
+        </g>
+      </svg>
+    </figure>
+
+    <p class="arch-label"><b>B. Ours: U-Net completion decoder</b> (26.8M parameters) &mdash; <span class="new-tag">changed</span> blocks are what is new</p>
+    <figure class="arch">
+      <svg viewBox="0 0 1100 214" role="img" aria-label="U-Net completion architecture">
+        <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#57606a"/></marker></defs>
+        <g font-family="Noto Sans, sans-serif" font-size="12" text-anchor="middle">
+          <rect x="10" y="40" width="120" height="96" rx="8" class="b-img"/>
+          <text x="70" y="70" font-weight="700">RGB image</text><text x="70" y="90">240 &#215; 320</text><text x="70" y="108">one frame</text>
+          <rect x="160" y="40" width="130" height="96" rx="8" class="b-img b-new"/>
+          <text x="225" y="62" font-weight="700">ResNet-50 + FPN</text><text x="225" y="80">layer2 + up(layer3)</text><text x="225" y="98">stride 8</text><text x="225" y="116">30 &#215; 40 &#215; 256</text>
+          <rect x="320" y="40" width="140" height="96" rx="8" class="b-depth"/>
+          <text x="390" y="66" font-weight="700">Depth + context</text><text x="390" y="84">48 depth bins</text><text x="390" y="102">0.25&#8211;5 m</text><text x="390" y="120">64 context ch.</text>
+          <rect x="490" y="40" width="130" height="96" rx="8" class="b-depth"/>
+          <text x="555" y="70" font-weight="700">Lift</text><text x="555" y="90">p(depth) &#8855; context</text><text x="555" y="108">4&#215; more rays</text>
+          <rect x="650" y="40" width="140" height="96" rx="8" class="b-bev b-new"/>
+          <text x="720" y="62" font-weight="700">Splat + visibility</text><text x="720" y="80">3 height bands</text><text x="720" y="98">+ log(1 + depth mass)</text><text x="720" y="116">= what was observed</text>
+          <rect x="820" y="40" width="140" height="96" rx="8" class="b-bev b-new"/>
+          <text x="890" y="62" font-weight="700">U-Net decoder</text><text x="890" y="80">80&#8594;40&#8594;20&#8594;10&#8594;80</text><text x="890" y="98">skip connections</text><text x="890" y="116">96&#8211;384 ch, whole grid</text>
+          <rect x="990" y="22" width="100" height="40" rx="8" class="b-head"/><text x="1040" y="47">R1 occupancy</text>
+          <rect x="990" y="68" width="100" height="40" rx="8" class="b-head"/><text x="1040" y="93">R2 bands</text>
+          <rect x="990" y="114" width="100" height="40" rx="8" class="b-head"/><text x="1040" y="139">R5 clearance</text>
+          <g stroke="#57606a" stroke-width="1.6" fill="none" marker-end="url(#ah2)">
+            <path d="M130,88 H158"/><path d="M290,88 H318"/><path d="M460,88 H488"/><path d="M620,88 H648"/><path d="M790,88 H818"/>
+            <path d="M960,88 H975 V42 H988"/><path d="M960,88 H988"/><path d="M960,88 H975 V134 H988"/>
+          </g>
+          <path d="M390,184 V140" stroke="#cf222e" stroke-width="1.4" stroke-dasharray="4 3" fill="none" marker-end="url(#ah2)"/>
+          <text x="390" y="197" fill="#cf222e" font-size="11.5">depth-bin loss (training only)</text>
+          <rect x="760" y="160" width="330" height="46" rx="8" class="b-loss b-new"/>
+          <text x="925" y="180">loss weighted &#215;2 on cells the frame does not see</text><text x="925" y="198">and within 0.4 m of obstacles; mixed precision</text>
+        </g>
+      </svg>
+    </figure>
+    <p class="table-note">Why these changes: lifting leaves occluded and out-of-view cells empty, and the baseline encoder only sees about 3.3&nbsp;m around each cell,
+      so it cannot reason about a whole room. The U-Net sees the whole grid, the visibility channels tell it which cells are guesses,
+      and the loss weights push it to complete hidden space and get edges near obstacles right. Stride-8 features give four times as many rays.</p>
+
+    <h3 class="title is-4">Results on minival (test scenes, never trained on)</h3>
+    <div class="findings columns is-multiline">
+      <div class="column is-half"><div class="finding"><span class="num">0.905</span><p><b>RGB only, fused over time.</b> Our model with log-odds fusion reaches 0.905 closed-loop success,
+        5.5 points below privileged labels (0.960, McNemar p&nbsp;=&nbsp;0.05) and 17 points above single-frame maps from the <i>true</i> depth sensor (0.735, p&nbsp;&lt;&nbsp;10<sup>&minus;6</sup>).</p></div></div>
+      <div class="column is-half"><div class="finding"><span class="num">0.41&nbsp;vs&nbsp;0.04</span><p><b>It completes hidden space.</b> In cells hidden behind objects the model reaches R1 mIoU 0.41;
+        a 3D LiDAR gets 0.04 there and back-projected depth gets 0.</p></div></div>
+      <div class="column is-half"><div class="finding"><span class="num">0.78&nbsp;vs&nbsp;0.90</span><p><b>It pays in the visible region.</b> Where the camera sees, exact depth is still better (0.90);
+        the model's 0.78 is the cost of estimating depth from RGB.</p></div></div>
+      <div class="column is-half"><div class="finding"><span class="num">0.885&nbsp;vs&nbsp;0.905</span><p><b>R5 brings no gain with real model errors.</b> R5 tolerated grown obstacles in the oracle study,
+        but with the model's errors it is level with R1 (single frame 0.775 vs 0.790).</p></div></div>
+    </div>
+
+    <h4 class="title is-5">Closed loop, same 200 minival episodes for every row</h4>
+    <div class="table-container">
+      <table class="table is-fullwidth is-hoverable is-narrow results-table">
+        <thead><tr><th>Map source</th><th>Input</th><th>Planner</th><th>Success [95% CI]</th><th>SPL</th><th>Coll.</th><th>Failures (step budget / no plan)</th></tr></thead>
+        <tbody>
+          <tr><td>Amodal labels (privileged)</td><td>simulator</td><td>R1</td><td>.960 [.92, .98]</td><td>.947</td><td>.31</td><td>5 / 3</td></tr>
+          <tr><td>3D LiDAR</td><td>LiDAR</td><td>R1</td><td>.965 [.93, .98]</td><td>.955</td><td>.46</td><td>7 / 0</td></tr>
+          <tr class="group"><td>Visible depth, exact</td><td>RGB-D</td><td>R1</td><td>.735 [.67, .79]</td><td>.685</td><td>.32</td><td>53 / 0</td></tr>
+          <tr><td>Visible depth, noisy</td><td>RGB-D</td><td>R1</td><td>.770 [.71, .82]</td><td>.729</td><td>.31</td><td>46 / 0</td></tr>
+          <tr><td>Visible depth, noisy + fusion</td><td>RGB-D</td><td>R1</td><td>.695 [.63, .75]</td><td>.668</td><td>.17</td><td>26 / 35</td></tr>
+          <tr class="group"><td><b>Ours (U-Net)</b></td><td>RGB</td><td>R1</td><td>.790 [.73, .84]</td><td>.785</td><td>.39</td><td>41 / 1</td></tr>
+          <tr><td><b>Ours (U-Net) + fusion</b></td><td>RGB</td><td>R1</td><td class="best">.905 [.86, .94]</td><td>.890</td><td>.34</td><td>19 / 0</td></tr>
+          <tr><td><b>Ours (U-Net)</b></td><td>RGB</td><td>R5 A*</td><td>.775 [.71, .83]</td><td>.765</td><td>.29</td><td>45 / 0</td></tr>
+          <tr><td><b>Ours (U-Net) + fusion</b></td><td>RGB</td><td>R5 A*</td><td>.885 [.83, .92]</td><td>.867</td><td>.32</td><td>23 / 0</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-note">Fusion: log-odds accumulation of the predicted R1 with exact odometry. Coll.: share of episodes with at least one collision.
+      Every failure of our model is a step-budget timeout (the robot runs out of steps before reaching the goal), the failure mode we traced to
+      turning in place with single-frame maps. Paired comparisons (same episodes): ours + fusion vs exact visible depth 39 wins / 5 losses; vs privileged labels 8 / 19.</p>
+
+    <h4 class="title is-5">Map quality: R1 vs the amodal label, by region (998 minival frames)</h4>
+    <div class="table-container">
+      <table class="table is-fullwidth is-hoverable is-narrow results-table">
+        <thead><tr><th>Source</th><th>All</th><th>Visible</th><th>Occluded</th><th>Blind zone</th><th>Outside view</th></tr></thead>
+        <tbody>
+          <tr><td>Visible depth, exact (RGB-D)</td><td>.296</td><td class="best">.903</td><td>.000</td><td>.000</td><td>.000</td></tr>
+          <tr><td>3D LiDAR</td><td>.413</td><td>.609</td><td>.039</td><td>.535</td><td>.507</td></tr>
+          <tr><td><b>Ours (U-Net), RGB</b></td><td class="best">.582</td><td>.780</td><td class="best">.411</td><td class="best">.615</td><td class="best">.542</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-note">mIoU of free and occupied. The model's R2 reaches mIoU 0.393 and its R5 a mean error of 0.32&nbsp;m (0.13&nbsp;m in the visible region, 0.43&nbsp;m behind objects).
+      On the 8 validation scenes the U-Net reached R1 mIoU 0.597 (best epoch); the baseline is still training and its numbers will be added here.</p>
+
+    <h3 class="title is-4">Videos</h3>
+    <div class="columns is-multiline">
+      <div class="column is-full">
+        <video poster="static/videos/model_drive_00800.jpg" autoplay controls muted loop playsinline preload="metadata"><source src="static/videos/model_drive_00800.mp4" type="video/mp4"></video>
+        <p class="video-caption"><b>Driving on the model's predictions</b> (minival scene 00800, <code>model:r1</code>). Left: the camera image, the only input.
+          Middle: the model's maps (it predicts R1, R2 and R5; R6 is derived from them, R3, R4 and R7 are not predicted). Right: the ground truth, for comparison only.
+          Two successful episodes. In a third (not shown) the robot ran out of steps.</p>
+      </div>
+      <div class="column is-full">
+        <video poster="static/videos/scan_00801.jpg" autoplay controls muted loop playsinline preload="metadata"><source src="static/videos/scan_00801.mp4" type="video/mp4"></video>
+        <p class="video-caption"><b>Scanning a whole floor</b> (minival scene 00801). The robot visits 25 points spread over the floor and turns a full circle at each;
+          the middle map is built <i>only</i> from the model's per-frame predictions, fused over time, next to the ground-truth floor map.
+          Result: floor mIoU 0.737 (free 0.786, occupied 0.687) with 97% of the floor mapped. The motion uses the true floor plan; the map does not.</p>
+      </div>
+    </div>
+
+    <h3 class="title is-4">Next steps</h3>
+    <div class="columns">
+      <div class="column">
+        <div class="content"><ul>
+          <li><b>Baseline vs ours on minival</b> (training now), then one-change ablations so each part of the U-Net model gets its own number: encoder only, + stride 8, + visibility, + loss weights.</li>
+          <li><b>Controller:</b> a dither guard for turning in place. It causes every one of our model's failures, so fixing it should move all predicted-map rows up.</li>
+          <li><b>Visible vs amodal supervision</b> for the predictor, and single-frame vs fused at training time.</li>
+        </ul></div>
+      </div>
+      <div class="column">
+        <div class="content"><ul>
+          <li><b>Stronger image backbone:</b> DINOv2-S, then Depth Anything 3 Small; recover metric scale from the known camera height.</li>
+          <li><b>Whole-floor mapping metric</b> on every minival scene with the scan above, and fusion with noisy odometry.</li>
+          <li><b>Statistics:</b> more episodes and seeds so that gaps of a few points can be resolved.</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- Tools -->
 <section class="section alt">
   <div class="container is-max-desktop">
@@ -425,7 +595,7 @@
 <!-- Next steps -->
 <section class="section" id="next">
   <div class="container is-max-desktop">
-    <h2 class="title is-3">Next steps</h2>
+    <h2 class="title is-3">Next steps (at the mid submission)</h2>
     <div class="columns">
       <div class="column">
         <h3 class="title is-5">Label fixes before training</h3>
