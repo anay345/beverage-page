@@ -75,3 +75,6 @@ pre { font-size: 0.85rem; }
 .new-tag { border: 2px dashed #cf222e; border-radius: 4px; padding: 0 0.3rem; color: #cf222e; font-weight: 600; }
 .video-caption { font-size: 0.9rem; color: #57606a; margin-top: 0.4rem; }
 #stage3 video { width: 100%; border-radius: 6px; }
+.frames-fig { margin: 1.5rem 0 0.5rem; }
+.frames-fig img { width: 100%; height: auto; border-radius: 6px; display: block; }
+.frames-fig figcaption { font-size: 0.9rem; color: #57606a; margin-top: 0.5rem; text-align: justify; }

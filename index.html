@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.4/css/academicons.min.css">
-  <link rel="stylesheet" href="static/css/index.css?v=2">
+  <link rel="stylesheet" href="static/css/index.css?v=3">
   <link rel="icon" href="static/images/favicon.svg">
 </head>
 <body>
@@ -422,9 +422,12 @@
         12,603 training and 795 validation frames, split by scene. The 10 minival scenes (00800&ndash;00809) are never trained on; they remain the test set.
         <b>Training.</b> AdamW (lr 3&times;10<sup>&minus;4</sup>, weight decay 10<sup>&minus;4</sup>), one-cycle schedule, 20 epochs, batch 16, horizontal flips and colour jitter,
         ImageNet-pretrained ResNet-50, depth-bin supervision from the depth sensor (training only). One Kaggle T4 per model.</p>
+      <p><b>Depth Anything 3 runs.</b> Architectures C and D below swap the ResNet for Depth Anything 3 Small (DA3, Apache-2.0), fine-tuned at
+        a tenth of the learning rate, with gradient clipping at 1.0; same data and losses. C trains 20 epochs with batch 16; D trains 12 epochs with batch 8,
+        since every sample carries three images.</p>
     </div>
 
-    <h3 class="title is-4">Two architectures</h3>
+    <h3 class="title is-4">Architectures</h3>
     <p class="arch-label"><b>A. Baseline Lift-Splat</b> (11.9M parameters)</p>
     <figure class="arch">
       <svg viewBox="0 0 1100 200" role="img" aria-label="Baseline Lift-Splat architecture">
@@ -492,6 +495,99 @@
       so it cannot reason about a whole room. The U-Net sees the whole grid, the visibility channels tell it which cells are guesses,
       and the loss weights push it to complete hidden space and get edges near obstacles right. Stride-8 features give four times as many rays.</p>
 
+    <p class="arch-label"><b>C. Depth Anything 3 backbone</b> (44.5M parameters) &mdash; <span class="new-tag">changed</span> blocks replace the ResNet-50 + FPN of B; everything after the features is B unchanged</p>
+    <figure class="arch">
+      <svg viewBox="0 0 1100 232" role="img" aria-label="Depth Anything 3 backbone architecture">
+        <defs><marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#57606a"/></marker></defs>
+        <g font-family="Noto Sans, sans-serif" font-size="12" text-anchor="middle" fill="#1f2328">
+          <rect x="10" y="40" width="105" height="96" rx="8" fill="#ddf4ff" stroke="#54aeff" stroke-width="1.4"/>
+          <text x="62" y="70" font-weight="700">RGB image</text><text x="62" y="90">240 &#215; 320</text><text x="62" y="108">one frame</text>
+          <rect x="135" y="40" width="160" height="96" rx="8" fill="#ddf4ff" stroke="#cf222e" stroke-width="2.4" stroke-dasharray="6 3"/>
+          <text x="215" y="60" font-weight="700">DA3-Small encoder</text><text x="215" y="78">DINOv2 ViT-S/14, 12 blocks</text><text x="215" y="96">18 &#215; 24 tokens (252&#215;336)</text><text x="215" y="114">read blocks 5, 7, 9, 11</text><text x="215" y="130" font-size="11">4 &#215; 768 ch, fp32</text>
+          <rect x="315" y="40" width="125" height="96" rx="8" fill="#ddf4ff" stroke="#cf222e" stroke-width="2.4" stroke-dasharray="6 3"/>
+          <text x="377" y="62" font-weight="700">Projection</text><text x="377" y="80">1&#215;1 conv 3072&#8594;256</text><text x="377" y="98">+ 3&#215;3 conv</text><text x="377" y="116">to 30 &#215; 40 (stride 8)</text>
+          <rect x="460" y="40" width="125" height="96" rx="8" fill="#fff8c5" stroke="#d4a72c" stroke-width="1.4"/>
+          <text x="522" y="66" font-weight="700">Depth + context</text><text x="522" y="84">258 ch in</text><text x="522" y="102">48 bins, 0.25&#8211;5 m</text><text x="522" y="120">64 context ch.</text>
+          <rect x="605" y="40" width="110" height="96" rx="8" fill="#fff8c5" stroke="#d4a72c" stroke-width="1.4"/>
+          <text x="660" y="70" font-weight="700">Lift</text><text x="660" y="90">p(depth) &#8855;</text><text x="660" y="108">context</text>
+          <rect x="735" y="40" width="120" height="96" rx="8" fill="#dafbe1" stroke="#4ac26b" stroke-width="1.4"/>
+          <text x="795" y="66" font-weight="700">Splat</text><text x="795" y="84">+ visibility</text><text x="795" y="102">3 bands, 80 &#215; 80</text><text x="795" y="120">+ goal channels</text>
+          <rect x="875" y="40" width="105" height="96" rx="8" fill="#dafbe1" stroke="#4ac26b" stroke-width="1.4"/>
+          <text x="927" y="70" font-weight="700">U-Net</text><text x="927" y="90">decoder</text><text x="927" y="108">as in B</text>
+          <rect x="995" y="22" width="95" height="40" rx="8" fill="#fbefff" stroke="#c297ff" stroke-width="1.4"/><text x="1042" y="47">R1 occupancy</text>
+          <rect x="995" y="68" width="95" height="40" rx="8" fill="#fbefff" stroke="#c297ff" stroke-width="1.4"/><text x="1042" y="93">R2 bands</text>
+          <rect x="995" y="114" width="95" height="40" rx="8" fill="#fbefff" stroke="#c297ff" stroke-width="1.4"/><text x="1042" y="139">R5 clearance</text>
+          <rect x="135" y="166" width="305" height="58" rx="8" fill="#f6f8fa" stroke="#cf222e" stroke-width="2.4" stroke-dasharray="6 3"/>
+          <text x="287" y="186" font-weight="700">DA3 depth head (pretrained, frozen)</text><text x="287" y="203">relative: log d &#8722; median, log(1 + confidence)</text><text x="287" y="218" font-size="11">2 scale-free channels, pooled to 30 &#215; 40, appended</text>
+          <g stroke="#57606a" stroke-width="1.6" fill="none" marker-end="url(#ah3)">
+            <path d="M115,88 H133"/><path d="M295,88 H313"/><path d="M440,88 H458"/><path d="M585,88 H603"/><path d="M715,88 H733"/><path d="M855,88 H873"/>
+            <path d="M980,88 H987 V42 H993"/><path d="M980,88 H993"/><path d="M980,88 H987 V134 H993"/>
+            <path d="M215,136 V164"/><path d="M440,195 H500 V138"/>
+          </g>
+          <path d="M600,204 H530 V140" stroke="#cf222e" stroke-width="1.4" stroke-dasharray="4 3" fill="none" marker-end="url(#ah3)"/>
+          <text x="760" y="200" fill="#cf222e" font-size="11.5">metric depth-bin loss from the depth sensor (training only):</text>
+          <text x="760" y="215" fill="#cf222e" font-size="11.5">turns DA3's relative depth into metric bins</text>
+        </g>
+      </svg>
+    </figure>
+    <p class="table-note">DA3 predicts depth only up to an unknown scale, so its depth is not used as metric depth: it enters as two scale-free
+      channels, and the depth-bin head learns the metric scale from the depth sensor during training. The encoder is fine-tuned at a tenth of the
+      learning rate and runs in fp32 (fine-tuned in fp16 on the T4 its activations overflowed after four epochs); the depth head stays frozen.</p>
+
+    <p class="arch-label"><b>D. Multi-view: DA3's cross-view attention over the robot's own recent views</b> (44.7M parameters)</p>
+    <figure class="arch">
+      <svg viewBox="0 0 1100 300" role="img" aria-label="Multi-view Depth Anything 3 architecture">
+        <defs><marker id="ah4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#57606a"/></marker></defs>
+        <g font-family="Noto Sans, sans-serif" font-size="12" text-anchor="middle" fill="#1f2328">
+          <rect x="10" y="20" width="125" height="58" rx="8" fill="#ddf4ff" stroke="#54aeff" stroke-width="1.4"/>
+          <text x="72" y="44" font-weight="700">current view</text><text x="72" y="62">240 &#215; 320</text>
+          <rect x="10" y="92" width="125" height="58" rx="8" fill="#ddf4ff" stroke="#cf222e" stroke-width="2.4" stroke-dasharray="6 3"/>
+          <text x="72" y="114" font-weight="700">context view 1</text><text x="72" y="132" font-size="11">earlier frame + pose</text>
+          <rect x="10" y="164" width="125" height="58" rx="8" fill="#ddf4ff" stroke="#cf222e" stroke-width="2.4" stroke-dasharray="6 3"/>
+          <text x="72" y="186" font-weight="700">context view 2</text><text x="72" y="204" font-size="11">earlier frame + pose</text>
+          <text x="72" y="246" font-size="11">from the robot's own trail:</text><text x="72" y="260" font-size="11">&#8804; 3 m away, &#8805; 0.3 m or 30&#176;</text><text x="72" y="274" font-size="11">apart, most recent first</text>
+          <rect x="160" y="20" width="190" height="202" rx="8" fill="#ddf4ff" stroke="#cf222e" stroke-width="2.4" stroke-dasharray="6 3"/>
+          <text x="255" y="44" font-weight="700">DA3-Small encoder, all 3 views</text>
+          <text x="255" y="66">blocks 0&#8211;3: within each view</text>
+          <text x="255" y="88">blocks 4&#8211;11 alternate:</text>
+          <text x="255" y="106">even: within each view</text>
+          <text x="255" y="124">odd: <tspan font-weight="700">across all views</tspan></text>
+          <text x="255" y="142">(3 &#215; 432 = 1,296 tokens)</text>
+          <text x="255" y="164">read-outs 5, 7, 9, 11 are</text>
+          <text x="255" y="182">the cross-view blocks</text>
+          <text x="255" y="204" font-size="11">view 0 is DA3's reference view</text>
+          <rect x="375" y="20" width="135" height="202" rx="8" fill="#fff8c5" stroke="#d4a72c" stroke-width="1.4"/>
+          <text x="442" y="44" font-weight="700">per view:</text><text x="442" y="66">projection</text><text x="442" y="84">+ depth prior</text><text x="442" y="106">depth + context</text><text x="442" y="124">(shared weights)</text>
+          <text x="442" y="150">48 bins &#215; 64 ch</text><text x="442" y="168">for each of the</text><text x="442" y="186">3 views</text>
+          <rect x="535" y="20" width="175" height="76" rx="8" fill="#dafbe1" stroke="#4ac26b" stroke-width="1.4"/>
+          <text x="622" y="44" font-weight="700">current view</text><text x="622" y="62">lift + splat + visibility</text><text x="622" y="80">exactly as in C</text>
+          <rect x="535" y="128" width="175" height="94" rx="8" fill="#dafbe1" stroke="#cf222e" stroke-width="2.4" stroke-dasharray="6 3"/>
+          <text x="622" y="150" font-weight="700">context views</text><text x="622" y="168">lift, move by pose T</text><text x="622" y="186">into the current grid,</text><text x="622" y="204">sum + log(1 + mass)</text>
+          <rect x="735" y="60" width="120" height="122" rx="8" fill="#dafbe1" stroke="#cf222e" stroke-width="2.4" stroke-dasharray="6 3"/>
+          <text x="795" y="94" font-weight="700">concatenate</text><text x="795" y="114">current grid</text><text x="795" y="132">+ context grid</text><text x="795" y="150">(+195 ch)</text>
+          <rect x="875" y="60" width="105" height="122" rx="8" fill="#dafbe1" stroke="#4ac26b" stroke-width="1.4"/>
+          <text x="927" y="110" font-weight="700">U-Net</text><text x="927" y="130">decoder</text>
+          <rect x="995" y="50" width="95" height="40" rx="8" fill="#fbefff" stroke="#c297ff" stroke-width="1.4"/><text x="1042" y="75">R1 occupancy</text>
+          <rect x="995" y="101" width="95" height="40" rx="8" fill="#fbefff" stroke="#c297ff" stroke-width="1.4"/><text x="1042" y="126">R2 bands</text>
+          <rect x="995" y="152" width="95" height="40" rx="8" fill="#fbefff" stroke="#c297ff" stroke-width="1.4"/><text x="1042" y="177">R5 clearance</text>
+          <g stroke="#57606a" stroke-width="1.6" fill="none" marker-end="url(#ah4)">
+            <path d="M135,49 H158"/><path d="M135,121 H158"/><path d="M135,193 H158"/>
+            <path d="M350,121 H373"/>
+            <path d="M510,58 H533"/><path d="M510,175 H533"/>
+            <path d="M710,58 H722 V100 H733"/><path d="M710,175 H722 V142 H733"/>
+            <path d="M855,121 H873"/>
+            <path d="M980,121 H987 V70 H993"/><path d="M980,121 H993"/><path d="M980,121 H987 V172 H993"/>
+          </g>
+          <text x="760" y="252" fill="#57606a" font-size="11.5">No context yet (first step of an episode): the context channels are zeros.</text>
+          <text x="760" y="268" fill="#57606a" font-size="11.5">Training: 2 nearby frames of the same scene with their true relative poses;</text>
+          <text x="760" y="284" fill="#57606a" font-size="11.5">in 15% of batches no context, so the model also works alone.</text>
+        </g>
+      </svg>
+    </figure>
+    <p class="table-note">Two separate mechanisms use the extra views. Inside DA3, its cross-view attention lets every view's features see the others
+      (the features we read out come from exactly those blocks). After the depth head, each context view is lifted into 3D and moved into the current
+      grid with its pose, so cells the current camera cannot see get evidence from the earlier views. Poses come from odometry (exact in these runs).</p>
+
     <h3 class="title is-4">Results on minival (test scenes, never trained on)</h3>
     <div class="findings columns is-multiline">
       <div class="column is-half"><div class="finding"><span class="num">0.905</span><p><b>RGB only, fused over time.</b> Our model with log-odds fusion reaches 0.905 closed-loop success,
@@ -514,16 +610,26 @@
           <tr class="group"><td>Visible depth, exact</td><td>RGB-D</td><td>R1</td><td>.735 [.67, .79]</td><td>.685</td><td>.32</td><td>53 / 0</td></tr>
           <tr><td>Visible depth, noisy</td><td>RGB-D</td><td>R1</td><td>.770 [.71, .82]</td><td>.729</td><td>.31</td><td>46 / 0</td></tr>
           <tr><td>Visible depth, noisy + fusion</td><td>RGB-D</td><td>R1</td><td>.695 [.63, .75]</td><td>.668</td><td>.17</td><td>26 / 35</td></tr>
+          <tr class="group"><td>Baseline Lift-Splat (A)</td><td>RGB</td><td>R1</td><td>.745 [.68, .80]</td><td>.740</td><td>.38</td><td>50 / 1</td></tr>
+          <tr><td>Baseline Lift-Splat (A) + fusion</td><td>RGB</td><td>R1</td><td>.895 [.84, .93]</td><td>.883</td><td>.35</td><td>20 / 1</td></tr>
+          <tr><td>Baseline Lift-Splat (A)</td><td>RGB</td><td>R5 A*</td><td>.805 [.74, .85]</td><td>.793</td><td>.39</td><td>39 / 0</td></tr>
+          <tr><td>Baseline Lift-Splat (A) + fusion</td><td>RGB</td><td>R5 A*</td><td>.885 [.83, .92]</td><td>.864</td><td>.30</td><td>23 / 0</td></tr>
           <tr class="group"><td><b>Ours (U-Net)</b></td><td>RGB</td><td>R1</td><td>.790 [.73, .84]</td><td>.785</td><td>.39</td><td>41 / 1</td></tr>
           <tr><td><b>Ours (U-Net) + fusion</b></td><td>RGB</td><td>R1</td><td class="best">.905 [.86, .94]</td><td>.890</td><td>.34</td><td>19 / 0</td></tr>
           <tr><td><b>Ours (U-Net)</b></td><td>RGB</td><td>R5 A*</td><td>.775 [.71, .83]</td><td>.765</td><td>.29</td><td>45 / 0</td></tr>
           <tr><td><b>Ours (U-Net) + fusion</b></td><td>RGB</td><td>R5 A*</td><td>.885 [.83, .92]</td><td>.867</td><td>.32</td><td>23 / 0</td></tr>
+          <tr class="group"><td><b>Ours (DA3, C)</b></td><td>RGB</td><td>R1</td><td>.785 [.72, .84]</td><td>.778</td><td>.43</td><td>43 / 0</td></tr>
+          <tr><td><b>Ours (DA3, C) + fusion</b></td><td>RGB</td><td>R1</td><td>.880 [.83, .92]</td><td>.866</td><td>.40</td><td>24 / 0</td></tr>
+          <tr><td><b>Ours (DA3, C)</b></td><td>RGB</td><td>R5 A*</td><td>.840 [.78, .88]</td><td>.830</td><td>.40</td><td>31 / 1</td></tr>
+          <tr><td><b>Ours (DA3, C) + fusion</b></td><td>RGB</td><td>R5 A*</td><td>.875 [.82, .91]</td><td>.855</td><td>.32</td><td>25 / 0</td></tr>
         </tbody>
       </table>
     </div>
     <p class="table-note">Fusion: log-odds accumulation of the predicted R1 with exact odometry. Coll.: share of episodes with at least one collision.
       Every failure of our model is a step-budget timeout (the robot runs out of steps before reaching the goal), the failure mode we traced to
-      turning in place with single-frame maps. Paired comparisons (same episodes): ours + fusion vs exact visible depth 39 wins / 5 losses; vs privileged labels 8 / 19.</p>
+      turning in place with single-frame maps. Paired comparisons (same episodes): ours + fusion vs exact visible depth 39 wins / 5 losses; vs privileged labels 8 / 19.
+      DA3 vs U-Net, same episodes: R5 A* single frame 17 wins / 4 losses (p&nbsp;=&nbsp;0.007); every other pairing is within noise (fusion R1: 6 / 11, p&nbsp;=&nbsp;0.33).
+      With fusion the baseline, the U-Net and DA3 all land between 0.875 and 0.905: once maps are fused, these 200 episodes cannot separate them.</p>
 
     <h4 class="title is-5">Map quality: R1 vs the amodal label, by region (998 minival frames)</h4>
     <div class="table-container">
@@ -532,12 +638,71 @@
         <tbody>
           <tr><td>Visible depth, exact (RGB-D)</td><td>.296</td><td class="best">.903</td><td>.000</td><td>.000</td><td>.000</td></tr>
           <tr><td>3D LiDAR</td><td>.413</td><td>.609</td><td>.039</td><td>.535</td><td>.507</td></tr>
-          <tr><td><b>Ours (U-Net), RGB</b></td><td class="best">.582</td><td>.780</td><td class="best">.411</td><td class="best">.615</td><td class="best">.542</td></tr>
+          <tr><td>Baseline Lift-Splat (A), RGB</td><td>.568</td><td>.764</td><td>.401</td><td>.606</td><td>.525</td></tr>
+          <tr><td><b>Ours (U-Net, B), RGB</b></td><td class="best">.582</td><td>.780</td><td class="best">.411</td><td>.615</td><td class="best">.542</td></tr>
+          <tr><td><b>Ours (DA3, C), RGB</b></td><td>.581</td><td>.780</td><td>.410</td><td class="best">.616</td><td class="best">.542</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="table-note">mIoU of free and occupied. The model's R2 reaches mIoU 0.393 and its R5 a mean error of 0.32&nbsp;m (0.13&nbsp;m in the visible region, 0.43&nbsp;m behind objects).
-      On the 8 validation scenes the U-Net reached R1 mIoU 0.597 (best epoch); the baseline is still training and its numbers will be added here.</p>
+    <p class="table-note">mIoU of free and occupied. R2 mIoU: baseline 0.386, U-Net 0.393, DA3 0.405 (0.608 in the visible region, vs 0.581 for the U-Net).
+      R5 mean error: baseline 0.33&nbsp;m, U-Net 0.32&nbsp;m, DA3 0.33&nbsp;m; in the visible region 0.15, 0.13 and 0.13&nbsp;m, behind objects 0.45, 0.43 and 0.46&nbsp;m.
+      The U-Net improves on the baseline everywhere. DA3 matches the U-Net on R1 and is better where the camera sees, but not in hidden space.</p>
+
+    <h3 class="title is-4">Depth Anything 3 and multi-view context: a first look</h3>
+    <div class="content has-text-justified">
+      <p>The multi-view model (D) finished training just before this update. We ran a shorter minival check than for the other models, 400 frames for map quality
+        (the first 40 of each minival scene) and 50 closed-loop episodes (the first 5 of each scene). It is paired: every model in these two tables is scored on exactly
+        the same frames and the same episodes, including the U-Net and DA3 rows. The full 998-frame, 200-episode evaluation of D comes next.
+        We test D twice: with 2 context views, and with none, so the same weights see a single image. Context in map quality: the 2 nearest other saved frames
+        of the scene within 3&nbsp;m. Context in closed loop: the robot's own earlier frames from the current episode.</p>
+    </div>
+    <div class="findings columns is-multiline">
+      <div class="column is-half"><div class="finding"><span class="num">0.618&nbsp;vs&nbsp;0.590</span><p><b>Context views make better maps.</b> With 2 extra views, R1 mIoU rises by 0.028 over the U-Net and over single-view DA3,
+        on the same 400 frames: +0.028 behind objects, +0.046 outside the field of view, and R2 0.428 vs 0.399. On the validation scenes D reached 0.627 (C 0.594, B 0.592).</p></div></div>
+      <div class="column is-half"><div class="finding"><span class="num">0.587</span><p><b>The gain comes from the views, not the training.</b> The same multi-view weights given no context views
+        score 0.587, level with the single-view models. The extra input is doing the work.</p></div></div>
+      <div class="column is-half"><div class="finding"><span class="num">0.590&nbsp;vs&nbsp;0.590</span><p><b>A stronger backbone alone does not move R1.</b> DA3 with one image ties the ResNet U-Net on R1.
+        It improves what the camera sees (R2 visible 0.608 vs 0.581 over all 998 frames) but not hidden space, which one image cannot show.</p></div></div>
+      <div class="column is-half"><div class="finding"><span class="num">0.84&nbsp;vs&nbsp;0.70</span><p><b>Closed loop: the clearest gain is single-frame R5 A*.</b> D with context succeeds in 0.84 of the 50 episodes, the U-Net in 0.70
+        (7 wins, 0 losses, p&nbsp;=&nbsp;0.016); single-view DA3 also reaches 0.84. With fusion every model is at 0.86&ndash;0.88: 50 episodes cannot separate them.</p></div></div>
+    </div>
+
+    <h4 class="title is-5">Map quality on the same 400 minival frames</h4>
+    <div class="table-container">
+      <table class="table is-fullwidth is-hoverable is-narrow results-table">
+        <thead><tr><th>Model</th><th>Views</th><th>R1 all</th><th>Visible</th><th>Occluded</th><th>Blind zone</th><th>Outside view</th><th>R2 mIoU</th><th>R5 error (m)</th></tr></thead>
+        <tbody>
+          <tr><td>U-Net (B)</td><td>1</td><td>.590</td><td>.782</td><td>.418</td><td>.619</td><td>.551</td><td>.399</td><td>.309</td></tr>
+          <tr><td>DA3 (C)</td><td>1</td><td>.590</td><td>.779</td><td>.418</td><td>.623</td><td>.551</td><td>.409</td><td>.334</td></tr>
+          <tr class="group"><td>DA3 multi-view (D), no context</td><td>1</td><td>.587</td><td>.780</td><td>.414</td><td>.623</td><td>.548</td><td>.401</td><td>.329</td></tr>
+          <tr><td><b>DA3 multi-view (D)</b></td><td>3</td><td class="best">.618</td><td class="best">.791</td><td class="best">.446</td><td class="best">.643</td><td class="best">.597</td><td class="best">.428</td><td class="best">.304</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4 class="title is-5">Closed loop on the same 50 minival episodes</h4>
+    <div class="table-container">
+      <table class="table is-fullwidth is-hoverable is-narrow results-table">
+        <thead><tr><th>Model</th><th>Views</th><th>R1 + fusion: success</th><th>SPL</th><th>R5 A*, single frame: success</th><th>SPL</th></tr></thead>
+        <tbody>
+          <tr><td>Baseline Lift-Splat (A)</td><td>1</td><td>.88 [.76, .94]</td><td>.869</td><td>.74 [.60, .84]</td><td>.723</td></tr>
+          <tr><td>U-Net (B)</td><td>1</td><td>.88 [.76, .94]</td><td>.864</td><td>.70 [.56, .81]</td><td>.690</td></tr>
+          <tr><td>DA3 (C)</td><td>1</td><td>.88 [.76, .94]</td><td>.866</td><td>.84 [.71, .92]</td><td>.828</td></tr>
+          <tr class="group"><td>DA3 multi-view (D), no context</td><td>1</td><td>.86 [.74, .93]</td><td>.851</td><td>.76 [.63, .86]</td><td>.749</td></tr>
+          <tr><td><b>DA3 multi-view (D)</b></td><td>3</td><td>.88 [.76, .94]</td><td>.866</td><td>.84 [.71, .92]</td><td>.826</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-note">Context in closed loop: up to 2 of the robot's own earlier frames in this episode, within 3&nbsp;m and at least 0.3&nbsp;m or 30&deg; apart, with exact odometry.
+      Every failure is again a step-budget timeout. Paired counts for R5 A*: D vs the U-Net 7 wins / 0 losses (p&nbsp;=&nbsp;0.016); D vs D without context 4 / 0 (p&nbsp;=&nbsp;0.13); D vs DA3 2 / 2.
+      At 50 episodes a 95% interval is about &plusmn;0.1 wide, so these closed-loop rows are a first look; the map-quality table is the stronger evidence.</p>
+
+    <figure class="frames-fig">
+      <img src="static/images/fig_da3_frames.jpg" alt="R1 predictions of the U-Net, DA3 and the multi-view DA3 model on six minival frames" loading="lazy">
+      <figcaption><b>The same frames through every model</b> (minival, the first frame of six scenes, not picked by hand). Left: the camera image and the 2 context views only the multi-view model gets.
+        Then the amodal ground truth and each model's R1 (white free, black occupied, grey unknown; the cyan lines are the field of view, red hatching the blind zone).
+        On individual frames the models trade places: over these six frames the means are 0.524, 0.524 and 0.527. The 400-frame table above is the reliable comparison.</figcaption>
+    </figure>
 
     <h3 class="title is-4">Videos</h3>
     <div class="columns is-multiline">
@@ -553,22 +718,49 @@
           the middle map is built <i>only</i> from the model's per-frame predictions, fused over time, next to the ground-truth floor map.
           Result: floor mIoU 0.737 (free 0.786, occupied 0.687) with 97% of the floor mapped. The motion uses the true floor plan; the map does not.</p>
       </div>
+      <div class="column is-full">
+        <video poster="static/videos/da3_drive_compare_00800.jpg" controls muted loop playsinline preload="metadata"><source src="static/videos/da3_drive_compare_00800.mp4" type="video/mp4"></video>
+        <p class="video-caption"><b>One episode, three models</b> (minival 00800, episode 0, single-frame R5 A*). Top: the U-Net (B), middle: DA3 (C), bottom: the multi-view model (D),
+          which also sees up to 2 of its own earlier frames. All three reach the goal, in 100, 87 and 94 steps. Each row shows the camera, the predicted R5 clearance the planner uses
+          (red inside obstacles, black at their edge, white at 1&nbsp;m of clearance) with the local plan, and the floor map with the driven trail.</p>
+      </div>
+      <div class="column is-full">
+        <video poster="static/videos/da3_scan_compare_00801.jpg" controls muted loop playsinline preload="metadata"><source src="static/videos/da3_scan_compare_00801.mp4" type="video/mp4"></video>
+        <p class="video-caption"><b>Whole-floor scan, three models at once</b> (minival 00801). The scan above, now in the viewer's comparison panel: every model builds its own fused
+          floor map from exactly the same camera views
+          (590 views from 25 waypoints; the multi-view model's context comes from its own trail). Final floor mIoU: U-Net 0.744 (free 0.793, occupied 0.694),
+          DA3 0.722 (0.773, 0.672), multi-view DA3 0.728 (0.776, 0.679), with 97&ndash;98% of the floor mapped by each.
+          On this floor the per-frame gain of the multi-view model does not carry over once hundreds of views are fused: fusion already brings in the many views
+          that context gives a single frame, and the U-Net's maps come out slightly cleaner. This is one scene; the next steps include this metric on every minival scene.</p>
+      </div>
     </div>
 
     <h3 class="title is-4">Next steps</h3>
+    <div class="content has-text-justified">
+      <p>The results above point one way: hidden space is where the maps lose most, and the only thing that has improved it so far is more views.
+        So the next round scales the multi-view model, borrowing the training recipe of
+        <a href="https://plann3r.github.io/">Plann3r</a> (which fine-tunes the cross-view layers of VGGT on a query image plus eight map images).</p>
+    </div>
     <div class="columns">
       <div class="column">
+        <h4 class="title is-6">Training now (two Kaggle T4s)</h4>
         <div class="content"><ul>
-          <li><b>Baseline vs ours on minival</b> (training now), then one-change ablations so each part of the U-Net model gets its own number: encoder only, + stride 8, + visibility, + loss weights.</li>
-          <li><b>Controller:</b> a dither guard for turning in place. It causes every one of our model's failures, so fixing it should move all predicted-map rows up.</li>
-          <li><b>Visible vs amodal supervision</b> for the predictor, and single-frame vs fused at training time.</li>
+          <li><b>v3 recipe, all 67 scenes:</b> up to 3 context views, a random 0&ndash;3 per batch so one model serves any amount of history; depth supervision on every view,
+            not just the current one; DA3's patch embedding and per-view blocks frozen, only its cross-view blocks trained (7.1M of its 22M encoder weights); an exponential
+            moving average of the weights for evaluation; weight decay 0.05 on the backbone; and a fix that gives every data-loader worker its own augmentation stream.</li>
+          <li><b>Data-scaling point:</b> the same recipe on 30 of the 67 scenes with the same number of steps. If 30 &#8594; 67 scenes still helps,
+            the curve has not flattened, and more HM3D scenes are the next lever.</li>
         </ul></div>
       </div>
       <div class="column">
+        <h4 class="title is-6">Then</h4>
         <div class="content"><ul>
-          <li><b>Stronger image backbone:</b> DINOv2-S, then Depth Anything 3 Small; recover metric scale from the known camera height.</li>
-          <li><b>Whole-floor mapping metric</b> on every minival scene with the scan above, and fusion with noisy odometry.</li>
-          <li><b>Statistics:</b> more episodes and seeds so that gaps of a few points can be resolved.</li>
+          <li><b>Full minival for D and v3</b> (998 frames, 200 episodes) and with noisy odometry, since context poses then come from drift-prone odometry.</li>
+          <li><b>Whole-floor scans on all ten minival scenes</b>, to test whether the per-frame gain of context survives fusion (on 00801 it does not: 0.728 vs 0.744).</li>
+          <li><b>Trajectory training data:</b> context views from the robot's own driven trail rather than random nearby poses, so that training matches deployment.</li>
+          <li><b>Ablations</b> that separate the two uses of the extra views: cross-view attention only, context splatting only, and the number of views.</li>
+          <li><b>Controller dither guard:</b> every failure of every learned model is still a step-budget timeout.</li>
+          <li><b>With more compute:</b> hundreds of HM3D scenes, DA3-Base, 4&ndash;8 views and three seeds per row.</li>
         </ul></div>
       </div>
     </div>
